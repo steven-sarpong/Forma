@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, X, Flame, Beef, Wheat, Droplet } from "lucide-react";
+import Link from "next/link";
+import { Plus, Trash2, X, Flame, Beef, Wheat, Droplet, ScanLine } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { getMeals, addMeal, deleteMeal, getTodaysTotals } from "@/lib/storage";
 import { Meal } from "@/types";
@@ -28,17 +29,44 @@ export default function MealsPage() {
         title="Mahlzeiten"
         subtitle="Dein Essen im Überblick"
         right={
-          <button
-            onClick={() => setShowAdd(true)}
-            className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-card"
-            aria-label="Mahlzeit hinzufügen"
-          >
-            <Plus size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/meals/scan"
+              className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-card"
+              aria-label="Mahlzeit scannen"
+            >
+              <ScanLine size={20} />
+            </Link>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="w-10 h-10 rounded-full bg-white text-brand-700 border border-brand-200 flex items-center justify-center shadow-card"
+              aria-label="Mahlzeit hinzufügen"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
         }
       />
 
       <div className="px-5">
+        {/* Schneller Scan-Hinweis */}
+        <Link
+          href="/meals/scan"
+          className="block bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl2 p-4 text-white shadow-card active:scale-[0.98] transition-transform mb-5"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold">Mahlzeit per Foto erfassen</p>
+              <p className="text-xs text-brand-100 mt-0.5">
+                KI schätzt Kalorien & Makros automatisch
+              </p>
+            </div>
+            <span className="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center shrink-0">
+              <ScanLine size={22} />
+            </span>
+          </div>
+        </Link>
+
         {/* Tagesübersicht */}
         <div className="card p-4 mb-5">
           <p className="text-sm font-semibold text-gray-500 mb-3">Heute</p>
@@ -114,6 +142,7 @@ function MealRow({ meal, onChanged }: { meal: Meal; onChanged: () => void }) {
           </span>
           <span>· {meal.calories} kcal</span>
           {meal.source === "recipe" && <span className="pill bg-brand-50 text-brand-700">Rezept</span>}
+          {meal.source === "scan" && <span className="pill bg-accent-100 text-accent-600">KI-Scan</span>}
         </div>
       </div>
       <button

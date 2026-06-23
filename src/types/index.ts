@@ -91,8 +91,21 @@ export interface Meal {
   carbs: number; // Gramm
   fat: number; // Gramm
   eatenAt: string; // ISO-Datum/Zeit
-  source: "manual" | "recipe";
+  source: "manual" | "recipe" | "scan";
   recipeTitle?: string;
+}
+
+export interface MealScanItem {
+  name: string;
+  estimated_quantity?: string;
+}
+
+export interface MealScanResult {
+  meal_name: string;
+  confidence: number;
+  items: MealScanItem[];
+  calories_estimate: number;
+  macros: Macros;
 }
 
 export interface AppSettings {

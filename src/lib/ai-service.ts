@@ -151,11 +151,8 @@ Regeln:
 - Wenn nichts erkennbar ist, gib ein leeres "detected_items"-Array zurück`;
 
 export async function analyzeFridgeImage(imageBase64DataUrl: string) {
-  const primaryModel = getEnv("OPENROUTER_PRIMARY_MODEL", "google/gemini-2.0-flash-001");
-  const fallbackModel = getEnv(
-    "OPENROUTER_FALLBACK_MODEL",
-    "qwen/qwen-2.5-vl-7b-instruct:free"
-  );
+  const primaryModel = getEnv("OPENROUTER_PRIMARY_MODEL", "google/gemini-2.5-flash");
+  const fallbackModel = getEnv("OPENROUTER_FALLBACK_MODEL", "google/gemma-4-26b-a4b-it:free");
 
   const messages: OpenRouterMessage[] = [
     { role: "system", content: SCAN_SYSTEM_PROMPT },
@@ -170,6 +167,58 @@ export async function analyzeFridgeImage(imageBase64DataUrl: string) {
 
   const { content, modelUsed } = await callWithFallback(primaryModel, fallbackModel, messages);
   const parsed = safeJsonParse<{ detected_items: unknown[] }>(content);
+  return { ...parsed, modelUsed };
+}
+
+// ---------- Mahlzeiten-Scan ----------
+
+const MEAL_SCAN_SYSTEM_PROMPT = `Du bist ein erfahrener Ernährungsberater und Koch, der Fotos von zubereitetem Essen analysiert,
+um Kalorien und Makronährstoffe für eine Meal-Tracking-App zu schätzen.
+Antworte AUSSCHLIESSLICH mit validem JSON in genau diesem Format, ohne zusätzlichen Text:
+
+{
+  "meal_name": "Spaghetti Bolognese",
+  "confidence": 0.85,
+  "items": [
+    { "name": "Spaghetti", "estimated_quantity": "ca. 200g" },
+    { "name": "Hackfleischsoße", "estimated_quantity": "ca. 150g" }
+  ],
+  "calories_estimate": 650,
+  "macros": { "protein": "28g", "carbs": "75g", "fat": "22g" }
+}
+
+Regeln:
+- "meal_name" ist eine kurze, alltagstaugliche Bezeichnung des gesamten Gerichts auf dem Foto
+- "confidence" ist eine Zahl zwischen 0 und 1, wie sicher du dir bei der Erkennung bist
+- "items" listet die wichtigsten erkennbaren Bestandteile der Mahlzeit auf (2-6 Einträge)
+- "calories_estimate" ist eine realistische Schätzung der Gesamtkalorien (kcal) der kompletten Portion auf dem Foto
+- "macros" sind grobe Schätzungen in Gramm als String mit "g"-Suffix, bezogen auf die gesamte Portion
+- Schätze nach gesundem Menschenverstand basierend auf Portionsgröße, sichtbaren Zutaten und typischen Zubereitungsarten
+- Wenn auf dem Foto kein Essen erkennbar ist, setze "meal_name" auf "Unbekannt", "confidence" auf 0 und alle Schätzwerte auf 0`;
+
+export async function analyzeMealImage(imageBase64DataUrl: string) {
+  const primaryModel = getEnv("OPENROUTER_PRIMARY_MODEL", "google/gemini-2.5-flash");
+  const fallbackModel = getEnv("OPENROUTER_FALLBACK_MODEL", "google/gemma-4-26b-a4b-it:free");
+
+  const messages: OpenRouterMessage[] = [
+    { role: "system", content: MEAL_SCAN_SYSTEM_PROMPT },
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "Analysiere dieses Foto einer Mahlzeit und schätze Kalorien sowie Makros." },
+        { type: "image_url", image_url: { url: imageBase64DataUrl } },
+      ],
+    },
+  ];
+
+  const { content, modelUsed } = await callWithFallback(primaryModel, fallbackModel, messages);
+  const parsed = safeJsonParse<{
+    meal_name: string;
+    confidence: number;
+    items: unknown[];
+    calories_estimate: number;
+    macros: { protein: string; carbs: string; fat: string };
+  }>(content);
   return { ...parsed, modelUsed };
 }
 
@@ -207,10 +256,7 @@ export async function generateRecipes(
   preferredCategory?: RecipeCategory
 ) {
   const textModel = getEnv("OPENROUTER_TEXT_MODEL", "openai/gpt-4o-mini");
-  const fallbackModel = getEnv(
-    "OPENROUTER_FALLBACK_MODEL",
-    "qwen/qwen-2.5-vl-7b-instruct:free"
-  );
+  const fallbackModel = getEnv("OPENROUTER_FALLBACK_MODEL", "google/gemma-4-26b-a4b-it:free");
 
   const categoryHint = preferredCategory
     ? `Fokussiere dich besonders auf die Kategorie "${preferredCategory}".`
