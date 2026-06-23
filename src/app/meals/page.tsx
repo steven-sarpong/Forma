@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Trash2, X, Flame, Beef, Wheat, Droplet, ScanLine } from "lucide-react";
+import { Plus, Trash2, X, Flame, Beef, Wheat, Droplet, ScanLine, Search } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { getMeals, addMeal, deleteMeal, getTodaysTotals } from "@/lib/storage";
 import { Meal } from "@/types";
+import { FoodDbEntry, searchFoodDatabase } from "@/lib/food-database";
+import { CATEGORY_EMOJI } from "@/lib/category-style";
 
 export default function MealsPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -166,6 +168,43 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
 
+  const [suggestions, setSuggestions] = useState<FoodDbEntry[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(0);
+
+  function applyEntry(entry: FoodDbEntry) {
+    setName(entry.name);
+    setCalories(String(entry.nutritionPer100g.calories));
+    setProtein(String(entry.nutritionPer100g.protein));
+    setCarbs(String(entry.nutritionPer100g.carbs));
+    setFat(String(entry.nutritionPer100g.fat));
+    setShowSuggestions(false);
+  }
+
+  function handleNameChange(value: string) {
+    setName(value);
+    const results = searchFoodDatabase(value);
+    setSuggestions(results);
+    setShowSuggestions(results.length > 0);
+    setHighlightIndex(0);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIndex((i) => (i + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      applyEntry(suggestions[highlightIndex]);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
@@ -192,15 +231,48 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
+          <div className="relative">
             <label className="text-xs text-gray-500">Bezeichnung *</label>
-            <input
-              className="input-field mt-1"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="z. B. Hähnchen mit Reis"
-              required
-            />
+            <div className="relative mt-1">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+              <input
+                className="input-field pl-9"
+                value={name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={() => setShowSuggestions(false)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                placeholder="z. B. Hähnchen mit Reis"
+                autoComplete="off"
+                required
+              />
+            </div>
+            {showSuggestions && (
+              <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-brand-100 rounded-lg shadow-cardHover max-h-56 overflow-y-auto">
+                {suggestions.map((entry, i) => (
+                  <li key={entry.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => applyEntry(entry)}
+                      className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm ${
+                        i === highlightIndex ? "bg-brand-50" : "hover:bg-gray-50"
+                      }`}
+                    >
+                      <span>{CATEGORY_EMOJI[entry.category]}</span>
+                      <span className="font-medium text-brand-900">{entry.name}</span>
+                      <span className="text-xs text-gray-400 ml-auto">
+                        {entry.nutritionPer100g.calories} kcal/100g
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11px] text-gray-400 mt-1">
+              Wähle einen Vorschlag, um Nährwerte automatisch zu übernehmen, oder trage eigene
+              Werte unten ein.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
