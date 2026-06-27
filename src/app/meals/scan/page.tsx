@@ -7,6 +7,8 @@ import PageHeader from "@/components/PageHeader";
 import CameraCapture from "@/components/CameraCapture";
 import { MealScanItem } from "@/types";
 import { addMeal } from "@/lib/storage";
+import { recordActivity } from "@/lib/gamification";
+import { showXpToast } from "@/lib/xp-toast";
 
 type Step = "capture" | "analyzing" | "review" | "error" | "saved";
 
@@ -62,8 +64,8 @@ export default function MealScanPage() {
     }
   }
 
-  function handleSave() {
-    addMeal({
+  async function handleSave() {
+    await addMeal({
       name: mealName.trim() || "Mahlzeit",
       calories: Number(calories) || 0,
       protein: Number(protein) || 0,
@@ -75,6 +77,7 @@ export default function MealScanPage() {
       items,
       modelUsed: modelUsed || undefined,
     });
+    showXpToast(await recordActivity("meal"));
     setStep("saved");
     setTimeout(() => router.push("/meals"), 900);
   }

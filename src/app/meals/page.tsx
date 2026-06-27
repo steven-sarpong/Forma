@@ -6,6 +6,8 @@ import { Plus, Trash2, X, Flame, Beef, Wheat, Droplet, ScanLine, Search } from "
 import PageHeader from "@/components/PageHeader";
 import DetailSheet from "@/components/DetailSheet";
 import { getMeals, addMeal, deleteMeal, getTodaysTotals } from "@/lib/storage";
+import { recordActivity } from "@/lib/gamification";
+import { showXpToast } from "@/lib/xp-toast";
 import { Meal } from "@/types";
 import { FoodDbEntry, searchFoodDatabase } from "@/lib/food-database";
 import { CATEGORY_EMOJI } from "@/lib/category-style";
@@ -16,9 +18,9 @@ export default function MealsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [detailMeal, setDetailMeal] = useState<Meal | null>(null);
 
-  function reload() {
-    setMeals(getMeals());
-    setTotals(getTodaysTotals());
+  async function reload() {
+    setMeals(await getMeals());
+    setTotals(await getTodaysTotals());
   }
 
   useEffect(() => {
@@ -177,8 +179,8 @@ function MealRow({
         </div>
       </button>
       <button
-        onClick={() => {
-          deleteMeal(meal.id);
+        onClick={async () => {
+          await deleteMeal(meal.id);
           onChanged();
         }}
         className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:bg-rose-50 hover:text-rose-500 shrink-0"
@@ -255,8 +257,8 @@ function MealDetailSheet({
         {meal.modelUsed && <DetailField label="Analysiert mit" value={meal.modelUsed} />}
 
         <button
-          onClick={() => {
-            deleteMeal(meal.id);
+          onClick={async () => {
+            await deleteMeal(meal.id);
             onDeleted();
           }}
           className="btn-secondary w-full text-rose-600 border-rose-200 hover:bg-rose-50 flex items-center justify-center gap-2"
@@ -337,10 +339,10 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    addMeal({
+    await addMeal({
       name: name.trim(),
       calories: Number(calories) || 0,
       protein: Number(protein) || 0,
@@ -349,6 +351,7 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
       eatenAt: new Date().toISOString(),
       source: "manual",
     });
+    showXpToast(await recordActivity("meal"));
     onAdded();
     onClose();
   }

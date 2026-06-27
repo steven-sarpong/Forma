@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Loader2, Clock, Flame, ChevronDown, ChevronUp, Plus, AlertCircle } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { getFridgeItems, addMeal } from "@/lib/storage";
+import { recordActivity } from "@/lib/gamification";
+import { showXpToast } from "@/lib/xp-toast";
 import { Recipe, RECIPE_CATEGORIES, RecipeCategory } from "@/types";
 import { RECIPE_CATEGORY_COLOR } from "@/lib/category-style";
 
@@ -21,7 +23,7 @@ export default function RecipesPage() {
     setLoading(true);
     setError(null);
     try {
-      const fridgeItems = getFridgeItems();
+      const fridgeItems = await getFridgeItems();
       setHasFridgeItems(fridgeItems.length > 0);
       const ingredientNames = fridgeItems.map((i) => i.name);
 
@@ -57,11 +59,11 @@ export default function RecipesPage() {
     fetchRecipes(cat === "Alle" ? undefined : cat);
   }
 
-  function handleAddAsMeal(recipe: Recipe) {
+  async function handleAddAsMeal(recipe: Recipe) {
     const protein = parseFloat(recipe.macros.protein) || 0;
     const carbs = parseFloat(recipe.macros.carbs) || 0;
     const fat = parseFloat(recipe.macros.fat) || 0;
-    addMeal({
+    await addMeal({
       name: recipe.title,
       calories: recipe.calories_estimate,
       protein,
@@ -71,6 +73,7 @@ export default function RecipesPage() {
       source: "recipe",
       recipeTitle: recipe.title,
     });
+    showXpToast(await recordActivity("meal"));
     router.push("/meals");
   }
 

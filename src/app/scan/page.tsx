@@ -7,6 +7,8 @@ import PageHeader from "@/components/PageHeader";
 import CameraCapture from "@/components/CameraCapture";
 import { DetectedItem, FOOD_CATEGORIES, FoodCategory } from "@/types";
 import { addFridgeItem } from "@/lib/storage";
+import { recordActivity } from "@/lib/gamification";
+import { showXpToast } from "@/lib/xp-toast";
 import { CATEGORY_EMOJI } from "@/lib/category-style";
 
 type Step = "capture" | "analyzing" | "review" | "error" | "saved";
@@ -63,18 +65,21 @@ export default function ScanPage() {
     setItems((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function handleConfirmAll() {
-    items
-      .filter((it) => it.keep)
-      .forEach((it) => {
-        addFridgeItem({
-          name: it.name,
-          category: it.category,
-          quantity: it.estimated_quantity,
-          confidence: it.confidence,
-          source: "scan",
-        });
-      });
+  async function handleConfirmAll() {
+    await Promise.all(
+      items
+        .filter((it) => it.keep)
+        .map((it) =>
+          addFridgeItem({
+            name: it.name,
+            category: it.category,
+            quantity: it.estimated_quantity,
+            confidence: it.confidence,
+            source: "scan",
+          })
+        )
+    );
+    showXpToast(await recordActivity("scan"));
     setStep("saved");
     setTimeout(() => router.push("/fridge"), 900);
   }

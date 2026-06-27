@@ -1,17 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRound, ShieldCheck, Trash2, Info } from "lucide-react";
+import Link from "next/link";
+import { KeyRound, ShieldCheck, Trash2, Info, UserCog, ChevronRight, LogOut, Cloud, Users } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { resetAllData } from "@/lib/storage";
+import { clearProfile } from "@/lib/profile";
+import { signOut } from "@/lib/auth";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 export default function SettingsPage() {
   const [confirmReset, setConfirmReset] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  function handleReset() {
-    resetAllData();
+  async function handleReset() {
+    await resetAllData();
+    await clearProfile();
     setConfirmReset(false);
     window.location.href = "/";
+  }
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    await signOut();
+    window.location.href = "/login";
   }
 
   return (
@@ -19,6 +31,53 @@ export default function SettingsPage() {
       <PageHeader title="Einstellungen" subtitle="API-Key, Datenschutz & Daten" />
 
       <div className="px-5 space-y-4">
+        <Link href="/onboarding" className="card p-4 flex items-center gap-3">
+          <UserCog size={18} className="text-brand-600 shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-brand-900 text-sm">Profil & Ziele bearbeiten</p>
+            <p className="text-xs text-gray-500">Gewicht, Aktivität, Ziel und Kalorienberechnung anpassen</p>
+          </div>
+          <ChevronRight size={18} className="text-gray-400" />
+        </Link>
+
+        <Link href="/social" className="card p-4 flex items-center gap-3">
+          <Users size={18} className="text-brand-600 shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-brand-900 text-sm">Freunde & Leaderboard</p>
+            <p className="text-xs text-gray-500">Freunde hinzufügen und XP vergleichen</p>
+          </div>
+          <ChevronRight size={18} className="text-gray-400" />
+        </Link>
+
+        <section className="card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Cloud size={18} className="text-brand-600" />
+            <p className="font-semibold text-brand-900 text-sm">Account & Cloud-Sync</p>
+          </div>
+          {isSupabaseConfigured() ? (
+            <>
+              <p className="text-sm text-gray-500 mb-3">
+                Dein Profil und deine Ziele sind mit deinem Account verknüpft und über Geräte
+                hinweg synchron. Kühlschrank, Mahlzeiten, Gewicht und Training bleiben aktuell
+                lokal auf diesem Gerät.
+              </p>
+              <button
+                onClick={handleSignOut}
+                disabled={signingOut}
+                className="btn-secondary w-full flex items-center justify-center gap-2 text-rose-600 border-rose-200 hover:bg-rose-50"
+              >
+                <LogOut size={16} /> {signingOut ? "Wird abgemeldet..." : "Abmelden"}
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500">
+              Cloud-Sync ist noch nicht eingerichtet. Siehe{" "}
+              <code className="bg-gray-100 px-1 rounded">supabase/schema.sql</code> für die
+              Einrichtung.
+            </p>
+          )}
+        </section>
+
         <section className="card p-4">
           <div className="flex items-center gap-2 mb-2">
             <KeyRound size={18} className="text-brand-600" />

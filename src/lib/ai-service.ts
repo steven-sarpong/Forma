@@ -87,10 +87,11 @@ async function callWithFallback(
   primaryModel: string,
   fallbackModel: string,
   messages: OpenRouterMessage[],
-  jsonMode = true
+  jsonMode = true,
+  maxTokens = 2000
 ): Promise<{ content: string; modelUsed: string }> {
   try {
-    const content = await callOpenRouter(primaryModel, messages, jsonMode);
+    const content = await callOpenRouter(primaryModel, messages, jsonMode, maxTokens);
     return { content, modelUsed: primaryModel };
   } catch (primaryError) {
     console.warn(
@@ -98,7 +99,7 @@ async function callWithFallback(
       primaryError
     );
     try {
-      const content = await callOpenRouter(fallbackModel, messages, jsonMode);
+      const content = await callOpenRouter(fallbackModel, messages, jsonMode, maxTokens);
       return { content, modelUsed: fallbackModel };
     } catch (fallbackError) {
       throw new AIServiceError(
@@ -107,6 +108,27 @@ async function callWithFallback(
       );
     }
   }
+}
+
+// Wie callWithFallback, aber mit beliebig vielen Modellen in absteigender Priorität.
+// Wird für den AI-Coach genutzt: Claude Sonnet -> Gemini 2.5 Flash -> kostenloses Nemotron.
+async function callWithFallbackChain(
+  models: string[],
+  messages: OpenRouterMessage[],
+  jsonMode = true,
+  maxTokens = 600
+): Promise<{ content: string; modelUsed: string }> {
+  let lastError: unknown;
+  for (const model of models) {
+    try {
+      const content = await callOpenRouter(model, messages, jsonMode, maxTokens);
+      return { content, modelUsed: model };
+    } catch (err) {
+      console.warn(`[ai-service] Modell "${model}" fehlgeschlagen, versuche nächstes Modell.`, err);
+      lastError = err;
+    }
+  }
+  throw new AIServiceError("Alle konfigurierten KI-Modelle sind fehlgeschlagen.", lastError);
 }
 
 function safeJsonParse<T>(raw: string): T {
@@ -269,6 +291,130 @@ ${categoryHint}`;
 
   const { content, modelUsed } = await callWithFallback(textModel, fallbackModel, messages);
   const parsed = safeJsonParse<{ recipes: unknown[] }>(content);
+  return { ...parsed, modelUsed };
+}
+
+// ---------- AI Coach ----------
+
+const COACH_SYSTEM_PROMPT = `Du bist ein freundlicher, motivierender persönlicher Fitness- und Ernährungscoach in einer Tracking-App.
+Du sprichst den Nutzer direkt und natürlich auf Deutsch an (Du-Form), wie ein guter Personal Trainer, nicht wie ein Bot.
+Du bekommst aktuelle Tageswerte, Ziele und Profildaten des Nutzers. Formuliere darauf basierend eine kurze, persönliche Coach-Nachricht.
+
+Antworte AUSSCHLIESSLICH mit validem JSON in genau diesem Format, ohne zusätzlichen Text:
+{
+  "message": "Kurze, konkrete und motivierende Nachricht (max. 2-3 Sätze)",
+  "tip": "Ein einzelner, konkreter und umsetzbarer Tipp für heute (max. 1 Satz)"
+}
+
+Regeln:
+- Beziehe dich auf konkrete Zahlen (z.B. fehlende Proteinmenge, Kaloriendefizit, Fortschritt zum Zielgewicht), wenn vorhanden
+- Sei ehrlich aber wohlwollend, niemals beschämend oder streng
+- Variiere den Ton je nach Tageszeit und Fortschritt (z.B. morgens motivierend, abends zusammenfassend)
+- Keine generischen Plattitüden, die zu jedem Tag passen würden`;
+
+export interface CoachContext {
+  goal: string;
+  calorieGoal: number;
+  caloriesSoFar: number;
+  proteinGoalG: number;
+  proteinSoFar: number;
+  carbsGoalG: number;
+  carbsSoFar: number;
+  fatGoalG: number;
+  fatSoFar: number;
+  waterGoalMl: number;
+  weeklyWeightChangeKg: number;
+  weeksToGoal: number | null;
+  currentWeightKg: number;
+  targetWeightKg: number;
+  timeOfDay: "morgens" | "mittags" | "abends" | "nachts";
+}
+
+export async function generateCoachMessage(ctx: CoachContext) {
+  const primaryModel = getEnv("OPENROUTER_COACH_MODEL", "anthropic/claude-3.5-sonnet");
+  const secondaryModel = getEnv("OPENROUTER_PRIMARY_MODEL", "google/gemini-2.5-flash");
+  const freeModel = getEnv("OPENROUTER_COACH_FREE_MODEL", "nvidia/nemotron-nano-9b-v2:free");
+
+  const userPrompt = `Profil & heutiger Stand des Nutzers:
+- Ziel: ${ctx.goal}
+- Aktuelles Gewicht: ${ctx.currentWeightKg} kg, Zielgewicht: ${ctx.targetWeightKg} kg
+- Erwartete Veränderung: ${ctx.weeklyWeightChangeKg} kg/Woche${
+    ctx.weeksToGoal ? `, Prognose: ${ctx.weeksToGoal} Wochen bis zum Ziel` : ""
+  }
+- Tageszeit: ${ctx.timeOfDay}
+- Kalorien: ${Math.round(ctx.caloriesSoFar)} / ${ctx.calorieGoal} kcal
+- Protein: ${Math.round(ctx.proteinSoFar)} / ${ctx.proteinGoalG} g
+- Kohlenhydrate: ${Math.round(ctx.carbsSoFar)} / ${ctx.carbsGoalG} g
+- Fett: ${Math.round(ctx.fatSoFar)} / ${ctx.fatGoalG} g
+- Wasserziel: ${(ctx.waterGoalMl / 1000).toFixed(1)} L`;
+
+  const messages: OpenRouterMessage[] = [
+    { role: "system", content: COACH_SYSTEM_PROMPT },
+    { role: "user", content: userPrompt },
+  ];
+
+  const { content, modelUsed } = await callWithFallbackChain(
+    [primaryModel, secondaryModel, freeModel],
+    messages
+  );
+  const parsed = safeJsonParse<{ message: string; tip: string }>(content);
+  return { ...parsed, modelUsed };
+}
+
+// ---------- Trainingsplan-Generator ----------
+
+const WORKOUT_SYSTEM_PROMPT = `Du bist ein erfahrener Personal Trainer, der individuelle Trainingspläne für eine Fitness-App erstellt.
+Antworte AUSSCHLIESSLICH mit validem JSON in genau diesem Format, ohne zusätzlichen Text:
+
+{
+  "days": [
+    {
+      "name": "Tag 1 - Push",
+      "focus": "Brust, Schulter, Trizeps",
+      "exercises": [
+        { "name": "Bankdrücken", "muscleGroup": "Brust", "sets": 4, "reps": "8-10", "restSeconds": 90, "notes": "Langsame Ausführung, volle Range of Motion" }
+      ]
+    }
+  ]
+}
+
+Regeln:
+- Erstelle genau so viele Trainingstage, wie der Nutzer pro Woche trainieren möchte
+- Wähle eine sinnvolle Aufteilung (z.B. Ganzkörper bei 2-3x/Woche, Push/Pull/Legs oder Oberkörper/Unterkörper bei 4-6x/Woche)
+- Passe Übungsauswahl, Wiederholungsbereiche und Satzzahl an das Ziel an:
+  - Muskelaufbau: 6-12 Wiederholungen, 3-5 Sätze, Fokus auf progressive Overload
+  - Abnehmen / Body Recomposition: Mix aus Kraft und höheren Wiederholungen (10-15), kürzere Pausen, mehr Gesamtvolumen
+  - Gesünder leben: moderates Ganzkörpertraining, 10-15 Wiederholungen, Fokus auf Technik und Nachhaltigkeit
+- Jeder Trainingstag soll 5-7 Übungen enthalten, sinnvoll nach Muskelgruppen sortiert
+- "restSeconds" ist die empfohlene Pause zwischen den Sätzen in Sekunden
+- Nutze deutsche Übungsnamen, die in jedem Fitnessstudio nachvollziehbar sind`;
+
+export interface WorkoutPlanInput {
+  goal: string;
+  daysPerWeek: number;
+  activityLevel: string;
+  age: number;
+  gender: string;
+}
+
+export async function generateWorkoutPlan(input: WorkoutPlanInput) {
+  const textModel = getEnv("OPENROUTER_TEXT_MODEL", "openai/gpt-4o-mini");
+  const fallbackModel = getEnv("OPENROUTER_FALLBACK_MODEL", "google/gemma-4-26b-a4b-it:free");
+
+  const userPrompt = `Erstelle einen Trainingsplan für folgenden Nutzer:
+- Ziel: ${input.goal}
+- Trainingstage pro Woche: ${input.daysPerWeek}
+- Aktivitätslevel: ${input.activityLevel}
+- Alter: ${input.age}
+- Geschlecht: ${input.gender}`;
+
+  const messages: OpenRouterMessage[] = [
+    { role: "system", content: WORKOUT_SYSTEM_PROMPT },
+    { role: "user", content: userPrompt },
+  ];
+
+  const { content, modelUsed } = await callWithFallback(textModel, fallbackModel, messages, true, 3000);
+  const parsed = safeJsonParse<{ days: unknown[] }>(content);
   return { ...parsed, modelUsed };
 }
 

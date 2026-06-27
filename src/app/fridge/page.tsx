@@ -22,7 +22,7 @@ export default function FridgePage() {
   const [detailItem, setDetailItem] = useState<FridgeItem | null>(null);
 
   function reload() {
-    setItems(getFridgeItems());
+    getFridgeItems().then(setItems);
   }
 
   useEffect(() => {
@@ -193,8 +193,8 @@ function FridgeRow({
         </div>
       </button>
       <button
-        onClick={() => {
-          deleteFridgeItem(item.id);
+        onClick={async () => {
+          await deleteFridgeItem(item.id);
           onChanged();
         }}
         className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:bg-rose-50 hover:text-rose-500 shrink-0"
@@ -315,8 +315,8 @@ function FridgeDetailSheet({
         </p>
 
         <button
-          onClick={() => {
-            deleteFridgeItem(item.id);
+          onClick={async () => {
+            await deleteFridgeItem(item.id);
             onDeleted();
           }}
           className="btn-secondary w-full text-rose-600 border-rose-200 hover:bg-rose-50 flex items-center justify-center gap-2"
@@ -367,7 +367,10 @@ function AddItemModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
   const [saved, setSaved] = useState(false);
   const skipNextSearch = useRef(false);
 
-  const existingNames = useMemo(() => getFridgeItems().map((i) => i.name), []);
+  const [existingNames, setExistingNames] = useState<string[]>([]);
+  useEffect(() => {
+    getFridgeItems().then((items) => setExistingNames(items.map((i) => i.name)));
+  }, []);
 
   function applyEntry(entry: FoodDbEntry) {
     skipNextSearch.current = true;
@@ -432,7 +435,7 @@ function AddItemModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -440,7 +443,7 @@ function AddItemModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
     const finalNutrition = nutrition ?? ensureNutrition();
     const numericQuantity = quantityValue ? Number(quantityValue) : undefined;
 
-    addFridgeItem({
+    await addFridgeItem({
       name: trimmed,
       category,
       quantity: numericQuantity ? `${numericQuantity} ${quantityUnit}` : undefined,
