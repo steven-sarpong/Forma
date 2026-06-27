@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Plus, Trash2, AlertTriangle, X, Search, CheckCircle2, Pencil, ScanLine } from "lucide-react";
+import { Plus, Trash2, AlertTriangle, X, Search, CheckCircle2, Pencil, ScanLine, ChefHat, ChevronRight } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import DetailSheet from "@/components/DetailSheet";
 import {
@@ -84,6 +84,18 @@ export default function FridgePage() {
               <ScanLine size={22} />
             </span>
           </div>
+        </Link>
+
+        {/* Rezeptvorschläge */}
+        <Link href="/recipes" className="card p-4 flex items-center gap-3 mb-5">
+          <span className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+            <ChefHat size={18} className="text-brand-600" />
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-brand-900">Rezeptvorschläge</p>
+            <p className="text-xs text-gray-400">KI-Rezepte aus deinen vorhandenen Zutaten</p>
+          </div>
+          <ChevronRight size={18} className="text-gray-400" />
         </Link>
 
         {/* Kategorie-Filter */}

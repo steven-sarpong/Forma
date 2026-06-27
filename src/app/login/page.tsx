@@ -62,7 +62,7 @@ export default function LoginPage() {
         <span className="w-14 h-14 rounded-full bg-brand-600 flex items-center justify-center mb-3">
           <Sparkles size={26} className="text-white" />
         </span>
-        <h1 className="text-2xl font-bold text-brand-900">FridgeAI</h1>
+        <h1 className="text-2xl font-bold text-brand-900">Forma</h1>
         <p className="text-sm text-gray-500 mt-1">Dein KI-gestützter Fitness- &amp; Ernährungscoach</p>
       </div>
 

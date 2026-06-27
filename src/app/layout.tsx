@@ -6,14 +6,14 @@ import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import XpToastHost from "@/components/XpToastHost";
 
 export const metadata: Metadata = {
-  title: "FridgeAI – Smart Meal Tracker",
+  title: "Forma – Dein KI-Fitness- & Ernährungscoach",
   description:
-    "Scanne deinen Kühlschrank per KI, verwalte Lebensmittel und erhalte passende Rezeptvorschläge.",
+    "Forma begleitet dich beim Abnehmen und Trainieren: KI-Kühlschrank-Scan, Mahlzeiten-Tracking, Trainingspläne und Coaching in einer App.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "FridgeAI",
+    title: "Forma",
   },
   icons: {
     icon: [

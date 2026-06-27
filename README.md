@@ -227,7 +227,7 @@ der API-Key verlässt nie den Browser.
 
 ## Bekannte Grenzen
 
-- **Kein Apple Health / Google Fit / Wearable-Sync**: Als reine Web-App (PWA) hat FridgeAI
+- **Kein Apple Health / Google Fit / Wearable-Sync**: Als reine Web-App (PWA) hat Forma
   keinen Zugriff auf native Gesundheits-APIs. Das wäre nur mit einem nativen Wrapper (z. B.
   Capacitor) möglich.
 - Mengenangaben und Haltbarkeitsdaten aus dem KI-Scan sind Schätzungen und können im

@@ -1,4 +1,4 @@
-// Zentrale Typdefinitionen für FridgeAI / SmartMeal Tracker
+// Zentrale Typdefinitionen für Forma
 
 export type FoodCategory =
   | "Gemüse"
@@ -191,7 +191,9 @@ export interface WorkoutExercise {
   sets: number;
   reps: string; // z.B. "8-12" oder "12-15"
   restSeconds: number;
-  notes?: string;
+  notes?: string; // kurze Ausführungsbeschreibung / Technik-Tipp
+  imageUrl?: string; // optionales Beispielbild der Übung
+  gifUrl?: string; // optionale Bewegungs-Animation der Übung
 }
 
 export interface WorkoutDay {

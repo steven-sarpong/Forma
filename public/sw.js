@@ -1,4 +1,4 @@
-// Service Worker für FridgeAI: cached die App-Shell für Offline-Start und
+// Service Worker für Forma: cached die App-Shell für Offline-Start und
 // liefert bei fehlendem Netz eine Fallback-Seite statt eines Browser-Fehlers.
 //
 // Strategie:
@@ -6,7 +6,7 @@
 // - API-Routes (/api/*): immer Network-only (KI-Antworten dürfen nie veraltet sein)
 // - Statische Assets (_next/static, Icons, Manifest): Cache-first mit Hintergrund-Update
 
-const CACHE_NAME = "fridgeai-cache-v1";
+const CACHE_NAME = "forma-cache-v2";
 const APP_SHELL = ["/", "/offline", "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {

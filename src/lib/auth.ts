@@ -9,8 +9,22 @@ export async function getSession(): Promise<Session | null> {
   return data.session;
 }
 
+// Basis-URL der App für Auth-Redirects. NEXT_PUBLIC_SITE_URL sollte in
+// Produktion auf die echte Domain gesetzt sein (siehe .env.example); ohne
+// diese Variable fällt die App auf die aktuelle Browser-Origin zurück, damit
+// lokale Entwicklung auch ohne Konfiguration funktioniert.
+function getSiteUrl(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  if (typeof window !== "undefined") return window.location.origin;
+  return "http://localhost:3000";
+}
+
 export async function signUp(email: string, password: string) {
-  const { data, error } = await getSupabaseClient().auth.signUp({ email, password });
+  const { data, error } = await getSupabaseClient().auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: `${getSiteUrl()}/auth/callback` },
+  });
   if (error) throw error;
   return data;
 }

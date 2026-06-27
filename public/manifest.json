@@ -1,6 +1,6 @@
 {
-  "name": "FridgeAI – Smart Meal Tracker",
-  "short_name": "FridgeAI",
+  "name": "Forma – Fitness- & Ernährungscoach",
+  "short_name": "Forma",
   "description": "KI-gestützter Fitness-, Ernährungs- und Abnehm-Coach: Kühlschrank scannen, Mahlzeiten tracken, Trainingspläne und Gewichtsverlauf im Blick behalten.",
   "start_url": "/",
   "scope": "/",

@@ -1,4 +1,4 @@
--- FridgeAI / SmartMeal Tracker – Supabase-Schema (Phase 5: Auth & Cloud-Sync)
+-- Forma – Supabase-Schema (Phase 5: Auth & Cloud-Sync)
 --
 -- Ausführen im Supabase SQL-Editor (Projekt -> SQL Editor -> New query),
 -- danach Projekt-URL und Anon-Key aus "Project Settings -> API" in

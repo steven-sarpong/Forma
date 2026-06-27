@@ -23,6 +23,7 @@ import {
 import { calculateNutritionGoals, getProfile, saveProfile } from "@/lib/profile";
 
 type FormState = {
+  displayName: string;
   gender: Gender | null;
   age: string;
   heightCm: string;
@@ -45,6 +46,7 @@ type FormState = {
 
 function emptyState(): FormState {
   return {
+    displayName: "",
     gender: null,
     age: "",
     heightCm: "",
@@ -68,6 +70,7 @@ function emptyState(): FormState {
 
 function profileToState(existing: UserProfile): FormState {
   return {
+    displayName: existing.displayName ?? "",
     gender: existing.gender,
     age: String(existing.age),
     heightCm: String(existing.heightCm),
@@ -112,6 +115,7 @@ export default function OnboardingPage() {
   function validateStep(): string | null {
     switch (step) {
       case 0:
+        if (!form.displayName.trim()) return "Bitte gib einen Anzeigenamen ein.";
         if (!form.gender) return "Bitte wähle ein Geschlecht aus.";
         return null;
       case 1: {
@@ -162,6 +166,7 @@ export default function OnboardingPage() {
 
   function buildProfile(): Omit<UserProfile, "createdAt" | "updatedAt"> {
     return {
+      displayName: form.displayName.trim(),
       gender: form.gender as Gender,
       age: Number(form.age),
       heightCm: Number(form.heightCm),
@@ -196,7 +201,7 @@ export default function OnboardingPage() {
   }
 
   const previewProfile = (): UserProfile | null => {
-    if (!form.gender || !form.activityLevel || !form.goal) return null;
+    if (!form.displayName.trim() || !form.gender || !form.activityLevel || !form.goal) return null;
     if (!form.age || !form.heightCm || !form.weightKg || !form.targetWeightKg) return null;
     return {
       ...buildProfile(),
@@ -232,7 +237,22 @@ export default function OnboardingPage() {
 
       <div className="px-5 space-y-5 pb-6">
         {step === 0 && (
-          <div className="card p-4 space-y-3">
+          <div className="card p-4 space-y-4">
+            <div>
+              <label className="text-sm font-semibold text-gray-500">Wie heißt du?</label>
+              <input
+                type="text"
+                className="input-field mt-1"
+                value={form.displayName}
+                onChange={(e) => update("displayName", e.target.value)}
+                placeholder="z. B. Max"
+                maxLength={30}
+                autoFocus
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Dieser Name wird im Dashboard, bei Freunden und im Leaderboard angezeigt.
+              </p>
+            </div>
             <p className="text-sm font-semibold text-gray-500">Geschlecht</p>
             <div className="grid grid-cols-3 gap-2">
               {(["männlich", "weiblich", "divers"] as Gender[]).map((g) => (

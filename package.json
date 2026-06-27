@@ -1,8 +1,8 @@
 {
-  "name": "fridgeai",
+  "name": "forma",
   "version": "1.0.0",
   "private": true,
-  "description": "FridgeAI / SmartMeal Tracker – KI-gestütztes Kühlschrank- und Essen-Tracking",
+  "description": "Forma – KI-gestützter Fitness-, Ernährungs- und Abnehm-Coach",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

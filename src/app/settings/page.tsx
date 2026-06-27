@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { KeyRound, ShieldCheck, Trash2, Info, UserCog, ChevronRight, LogOut, Cloud, Users } from "lucide-react";
+import { KeyRound, ShieldCheck, Trash2, Info, UserCog, ChevronRight, LogOut, Cloud, Users, Trophy } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { resetAllData } from "@/lib/storage";
 import { clearProfile } from "@/lib/profile";
@@ -43,8 +43,17 @@ export default function SettingsPage() {
         <Link href="/social" className="card p-4 flex items-center gap-3">
           <Users size={18} className="text-brand-600 shrink-0" />
           <div className="flex-1">
-            <p className="font-semibold text-brand-900 text-sm">Freunde & Leaderboard</p>
-            <p className="text-xs text-gray-500">Freunde hinzufügen und XP vergleichen</p>
+            <p className="font-semibold text-brand-900 text-sm">Freunde</p>
+            <p className="text-xs text-gray-500">Freunde hinzufügen und Aktivitäts-Feed ansehen</p>
+          </div>
+          <ChevronRight size={18} className="text-gray-400" />
+        </Link>
+
+        <Link href="/challenges" className="card p-4 flex items-center gap-3">
+          <Trophy size={18} className="text-brand-600 shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-brand-900 text-sm">Challenges & Leaderboard</p>
+            <p className="text-xs text-gray-500">XP vergleichen und gemeinsame Ziele starten</p>
           </div>
           <ChevronRight size={18} className="text-gray-400" />
         </Link>
@@ -131,9 +140,10 @@ export default function SettingsPage() {
             <p className="font-semibold text-brand-900 text-sm">Datenschutz</p>
           </div>
           <p className="text-sm text-gray-500">
-            Deine Kühlschrank- und Mahlzeiten-Daten werden ausschließlich lokal in deinem Browser
-            gespeichert (localStorage) – es gibt keine Server-Datenbank. Fotos werden nur zur
-            Analyse an OpenRouter gesendet und nicht dauerhaft von dieser App gespeichert.
+            {isSupabaseConfigured()
+              ? "Dein Profil, Training, Gewicht und deine Social-Daten werden verschlüsselt und durch Row-Level-Security geschützt in deinem Supabase-Account gespeichert. Kühlschrank und Mahlzeiten bleiben lokal auf diesem Gerät."
+              : "Alle Daten werden ausschließlich lokal in deinem Browser gespeichert (localStorage) – es gibt keine Server-Datenbank."}{" "}
+            Fotos werden nur zur Analyse an OpenRouter gesendet und nicht dauerhaft gespeichert.
           </p>
         </section>
 
@@ -165,7 +175,7 @@ export default function SettingsPage() {
           )}
         </section>
 
-        <p className="text-center text-xs text-gray-300 pt-2">FridgeAI · SmartMeal Tracker</p>
+        <p className="text-center text-xs text-gray-300 pt-2">Forma · Fitness- & Ernährungscoach</p>
       </div>
     </div>
   );

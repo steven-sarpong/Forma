@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ScanLine, Refrigerator, ChefHat, UtensilsCrossed, Settings } from "lucide-react";
+import { Home, ScanLine, UtensilsCrossed, Trophy, Dumbbell, Settings } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Start", icon: Home },
-  { href: "/meals/scan", label: "Scan", icon: ScanLine, isCta: true },
-  { href: "/fridge", label: "Kühlschrank", icon: Refrigerator },
-  { href: "/recipes", label: "Rezepte", icon: ChefHat },
   { href: "/meals", label: "Mahlzeiten", icon: UtensilsCrossed },
+  { href: "/meals/scan", label: "Scan", icon: ScanLine, isCta: true },
+  { href: "/training", label: "Training", icon: Dumbbell },
+  { href: "/challenges", label: "Challenges", icon: Trophy },
 ];
 
 export default function BottomNav() {

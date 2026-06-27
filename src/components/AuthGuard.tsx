@@ -8,6 +8,11 @@ import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { migrateLocalDataToCloudIfNeeded } from "@/lib/migrate-local-data";
 
 const PUBLIC_PATHS = ["/login"];
+// Diese Seite verarbeitet selbst die Supabase-Session aus dem Bestätigungs-
+// Link (vor oder ohne aktive Session) und übernimmt ihr eigenes Redirect –
+// AuthGuard darf hier nicht eingreifen, sonst landet der Nutzer vor der
+// Erfolgsmeldung auf /login.
+const GUARD_EXEMPT_PATHS = ["/auth/callback"];
 
 // Schützt die App: leitet nicht eingeloggte Nutzer zu /login um.
 // Solange Supabase noch nicht konfiguriert ist (kein .env.local-Key),
@@ -18,7 +23,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
+    if (!isSupabaseConfigured() || GUARD_EXEMPT_PATHS.includes(pathname)) {
       setChecked(true);
       return;
     }

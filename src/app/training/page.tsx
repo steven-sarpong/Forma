@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Loader2,
   Dumbbell,
@@ -13,10 +14,19 @@ import {
   Flame,
   Clock,
   Trash2,
+  Sparkle,
+  MoveVertical,
+  Circle,
+  Footprints,
+  Hexagon,
+  HeartPulse,
+  Lightbulb,
+  type LucideIcon,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import DetailSheet from "@/components/DetailSheet";
 import { getProfile } from "@/lib/profile";
+import { getExerciseVisual } from "@/lib/exercise-visuals";
 import {
   getWorkoutPlan,
   saveWorkoutPlan,
@@ -29,7 +39,7 @@ import {
 import { recordActivity } from "@/lib/gamification";
 import { showXpToast } from "@/lib/xp-toast";
 import { estimateCaloriesBurned } from "@/lib/workout-stats";
-import { FITNESS_GOAL_LABELS, UserProfile, WorkoutDay, WorkoutLog, WorkoutPlan } from "@/types";
+import { FITNESS_GOAL_LABELS, UserProfile, WorkoutDay, WorkoutExercise, WorkoutLog, WorkoutPlan } from "@/types";
 
 export default function TrainingPage() {
   const router = useRouter();
@@ -286,6 +296,42 @@ export default function TrainingPage() {
   );
 }
 
+const VISUAL_ICONS: Record<string, LucideIcon> = {
+  Sparkle,
+  MoveVertical,
+  Circle,
+  Dumbbell,
+  Footprints,
+  Hexagon,
+  HeartPulse,
+};
+
+function ExerciseVisual({ exercise }: { exercise: WorkoutExercise }) {
+  if (exercise.gifUrl || exercise.imageUrl) {
+    return (
+      <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0 relative">
+        <Image
+          src={(exercise.gifUrl || exercise.imageUrl) as string}
+          alt={`Ausführung: ${exercise.name}`}
+          fill
+          unoptimized
+          className="object-cover"
+        />
+      </div>
+    );
+  }
+  const { icon, gradient } = getExerciseVisual(exercise.muscleGroup);
+  const Icon = VISUAL_ICONS[icon] ?? Dumbbell;
+  return (
+    <div
+      className={`w-16 h-16 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0`}
+      aria-label={`Platzhalter-Visual für ${exercise.muscleGroup}`}
+    >
+      <Icon size={26} className="text-white" />
+    </div>
+  );
+}
+
 function WorkoutDayCard({ day, onLog }: { day: WorkoutDay; onLog: () => void }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -309,15 +355,23 @@ function WorkoutDayCard({ day, onLog }: { day: WorkoutDay; onLog: () => void }) 
       {expanded && (
         <div className="px-4 pb-4 space-y-2 border-t border-brand-50 pt-3">
           {day.exercises.map((ex, i) => (
-            <div key={i} className="bg-gray-50 rounded-lg px-3 py-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-brand-900">{ex.name}</p>
-                <span className="pill bg-brand-50 text-brand-700">{ex.muscleGroup}</span>
+            <div key={i} className="bg-gray-50 rounded-lg p-3 flex gap-3">
+              <ExerciseVisual exercise={ex} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-brand-900 truncate">{ex.name}</p>
+                  <span className="pill bg-brand-50 text-brand-700 shrink-0">{ex.muscleGroup}</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {ex.sets} Sätze × {ex.reps} Wdh. · {ex.restSeconds}s Pause
+                </p>
+                {ex.notes && (
+                  <p className="text-[11px] text-gray-400 mt-1.5 flex items-start gap-1">
+                    <Lightbulb size={11} className="text-amber-500 shrink-0 mt-0.5" />
+                    <span>{ex.notes}</span>
+                  </p>
+                )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {ex.sets} Sätze × {ex.reps} Wdh. · {ex.restSeconds}s Pause
-              </p>
-              {ex.notes && <p className="text-[11px] text-gray-400 mt-1">{ex.notes}</p>}
             </div>
           ))}
           <button onClick={onLog} className="btn-primary w-full mt-2">

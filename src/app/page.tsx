@@ -3,13 +3,24 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ScanLine, Flame, Beef, ChevronRight, AlertTriangle, Droplet, Wheat, Sparkles, RefreshCw, Scale, Dumbbell, Trophy } from "lucide-react";
+import { ScanLine, Flame, Beef, ChevronRight, AlertTriangle, Droplet, Wheat, Sparkles, RefreshCw, Scale, Dumbbell, Trophy, Crown, Swords } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { getFridgeItems, getTodaysMeals, getTodaysTotals, getExpiringItems, getLatestWeightEntry } from "@/lib/storage";
 import { getProfile, calculateNutritionGoals } from "@/lib/profile";
 import { getCoachMessage, CoachMessage } from "@/lib/coach";
 import { calculateLevel, getStats } from "@/lib/gamification";
-import { FridgeItem, Meal, NutritionGoals, UserProfile, WeightEntry, GamificationStats, LevelInfo } from "@/types";
+import { getLeaderboard, isSocialAvailable } from "@/lib/friends";
+import { getMyChallenges } from "@/lib/challenges";
+import {
+  FridgeItem,
+  Meal,
+  NutritionGoals,
+  UserProfile,
+  WeightEntry,
+  GamificationStats,
+  LevelInfo,
+  ChallengeSummary,
+} from "@/types";
 import { CATEGORY_EMOJI, daysUntil } from "@/lib/category-style";
 
 export default function DashboardPage() {
@@ -27,6 +38,8 @@ export default function DashboardPage() {
   const [coach, setCoach] = useState<CoachMessage | null>(null);
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachError, setCoachError] = useState<string | null>(null);
+  const [rank, setRank] = useState<{ position: number; total: number } | null>(null);
+  const [topChallenge, setTopChallenge] = useState<ChallengeSummary | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -58,6 +71,20 @@ export default function DashboardPage() {
       setLatestWeight(latest);
       setGamificationStats(stats);
       setLevel(calculateLevel(stats.xp));
+
+      if (isSocialAvailable()) {
+        const [board, myChallenges] = await Promise.all([
+          getLeaderboard().catch(() => []),
+          getMyChallenges().catch(() => []),
+        ]);
+        if (!active) return;
+        if (board.length > 1) {
+          const position = board.findIndex((entry) => entry.isSelf) + 1;
+          if (position > 0) setRank({ position, total: board.length });
+        }
+        const acceptedChallenge = myChallenges.find((c) => c.myStatus === "accepted");
+        setTopChallenge(acceptedChallenge ?? null);
+      }
 
       loadCoachMessage(p, g, t);
     })();
@@ -91,7 +118,10 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <PageHeader title="Hallo 👋" subtitle="Hier ist dein Überblick für heute" />
+      <PageHeader
+        title={profile?.displayName ? `Hallo, ${profile.displayName} 👋` : "Hallo 👋"}
+        subtitle="Hier ist dein Überblick für heute"
+      />
 
       <div className="px-5 space-y-5">
         {/* Großer Scan-CTA */}
@@ -172,6 +202,57 @@ export default function DashboardPage() {
               </p>
             </div>
             <ChevronRight size={18} className="text-gray-400" />
+          </Link>
+        )}
+
+        {/* Challenges & Leaderboard */}
+        {(rank || topChallenge) && (
+          <Link
+            href="/challenges"
+            className="card p-4 bg-gradient-to-br from-brand-900 to-brand-700 text-white"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold flex items-center gap-1.5">
+                <Trophy size={15} /> Challenges & Leaderboard
+              </p>
+              <ChevronRight size={16} className="text-white/60" />
+            </div>
+            <div className="flex items-center gap-4">
+              {rank && (
+                <div className="flex items-center gap-2">
+                  <Crown size={16} className="text-amber-300" />
+                  <p className="text-sm">
+                    Platz <span className="font-bold">{rank.position}</span> von {rank.total}
+                  </p>
+                </div>
+              )}
+              {topChallenge && (
+                <div className="flex items-center gap-2 min-w-0">
+                  <Swords size={15} className="text-white/70 shrink-0" />
+                  <p className="text-sm truncate">{topChallenge.name}</p>
+                </div>
+              )}
+            </div>
+            {topChallenge && (
+              <div className="mt-3">
+                <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
+                  <div
+                    className="h-full bg-amber-300 transition-all"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        ((topChallenge.participants.find((p) => p.isSelf)?.progress ?? 0) /
+                          topChallenge.targetValue) *
+                          100
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-[11px] text-white/70 mt-1">
+                  {topChallenge.participants.find((p) => p.isSelf)?.progress ?? 0}/{topChallenge.targetValue} XP
+                </p>
+              </div>
+            )}
           </Link>
         )}
 
