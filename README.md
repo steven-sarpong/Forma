@@ -1,4 +1,4 @@
-# FridgeAI – KI-gestützter Fitness- & Ernährungscoach
+# Forma – KI-gestützter Fitness- & Ernährungscoach
 
 Mobile-first Progressive Web App (PWA) für Ernährungs- und Fitness-Tracking mit KI-gestütztem
 Kamera-Scan, persönlichem AI-Coach, Trainingsplänen, Gewichtsverlauf, Gamification und
