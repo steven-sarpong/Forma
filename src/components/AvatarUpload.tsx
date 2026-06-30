@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { X, Upload, Camera } from "lucide-react";
 
 const AVATAR_KEY = "forma_avatar";
-const MAX_SIZE = 800;
+const MAX_SIZE = 1200;
 
 export function getStoredAvatar(): string | null {
   if (typeof window === "undefined") return null;
@@ -28,7 +28,9 @@ function compressImage(file: File): Promise<string> {
       canvas.height = Math.round(img.height * scale);
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL("image/jpeg", 0.92));
+      // prefer WebP (better quality/size ratio); fall back to JPEG
+      const webp = canvas.toDataURL("image/webp", 0.92);
+      resolve(webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/jpeg", 0.95));
     };
     img.onerror = reject;
     img.src = url;

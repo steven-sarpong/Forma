@@ -28,7 +28,8 @@ interface Props {
 
 const FAB_SIZE = 52;
 const NAV_HEIGHT = 72;
-const HEADER_HEIGHT = 96; // approx header height — FAB sits just below it, centered
+const DEFAULT_TOP = 162; // center of the gap between header and first card
+const POS_KEY = "forma_coach_pos";
 const INTRO_KEY = "forma_coach_intro_seen";
 const PROACTIVE_KEY = "forma_coach_last_bubble";
 const PROACTIVE_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -47,12 +48,17 @@ export default function CoachFab({ coachMessage, coachLoading, onRefresh, contex
   const [open, setOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [proactiveTip, setProactiveTip] = useState<string | null>(null);
-  const [pos, setPos] = useState<{ top: number; right: number }>(() => ({
-    top: HEADER_HEIGHT,
-    right: typeof window !== "undefined"
-      ? Math.round(window.innerWidth / 2 - FAB_SIZE / 2)
-      : 16,
-  }));
+  const [pos, setPos] = useState<{ top: number; right: number }>(() => {
+    if (typeof window === "undefined") return { top: DEFAULT_TOP, right: 16 };
+    try {
+      const saved = localStorage.getItem(POS_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return {
+      top: DEFAULT_TOP,
+      right: Math.round(window.innerWidth / 2 - FAB_SIZE / 2),
+    };
+  });
   const [dragging, setDragging] = useState(false);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -93,6 +99,11 @@ export default function CoachFab({ coachMessage, coachLoading, onRefresh, contex
     }, delay);
     return () => clearTimeout(t);
   }, []);
+
+  // Persist FAB position across sessions
+  useEffect(() => {
+    try { localStorage.setItem(POS_KEY, JSON.stringify(pos)); } catch { /* ignore */ }
+  }, [pos]);
 
   // Seed chat with daily message when it arrives
   useEffect(() => {
