@@ -29,10 +29,8 @@ function getMealType(dateStr: string): string {
   return "Snacks";
 }
 
-const TODAY_KEY = new Date().toLocaleDateString("de-DE");
-
 function isToday(dateStr: string): boolean {
-  return new Date(dateStr).toLocaleDateString("de-DE") === TODAY_KEY;
+  return new Date(dateStr).toLocaleDateString("de-DE") === new Date().toLocaleDateString("de-DE");
 }
 
 export default function MealsPage() {

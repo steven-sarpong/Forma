@@ -3,17 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, AlertCircle, Sparkles } from "lucide-react";
-import { signIn, signUp } from "@/lib/auth";
+import { signIn, signUp, resetPasswordForEmail } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   if (!isSupabaseConfigured()) {
     return (
@@ -45,6 +46,9 @@ export default function LoginPage() {
       if (mode === "signup") {
         await signUp(email, password);
         setSignupSuccess(true);
+      } else if (mode === "reset") {
+        await resetPasswordForEmail(email);
+        setResetSuccess(true);
       } else {
         await signIn(email, password);
         router.replace("/");
@@ -83,6 +87,49 @@ export default function LoginPage() {
             Zur Anmeldung
           </button>
         </div>
+      ) : resetSuccess ? (
+        <div className="card p-5 text-center space-y-3">
+          <p className="font-semibold text-brand-900">E-Mail gesendet!</p>
+          <p className="text-sm text-gray-500">
+            Wir haben einen Link zum Zurücksetzen deines Passworts an{" "}
+            <span className="font-medium">{email}</span> geschickt.
+          </p>
+          <button
+            onClick={() => { setResetSuccess(false); setMode("signin"); }}
+            className="btn-secondary w-full"
+          >
+            Zur Anmeldung
+          </button>
+        </div>
+      ) : mode === "reset" ? (
+        <form onSubmit={handleSubmit} className="card p-5 space-y-4">
+          <p className="text-sm font-semibold text-brand-900">Passwort zurücksetzen</p>
+          <p className="text-xs text-gray-500">
+            Gib deine E-Mail-Adresse ein. Wir schicken dir einen Link zum Zurücksetzen.
+          </p>
+          <div>
+            <label className="text-sm font-semibold text-gray-500">E-Mail</label>
+            <div className="relative mt-1">
+              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="email"
+                required
+                className="input-field pl-9"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="du@beispiel.de"
+                autoComplete="email"
+              />
+            </div>
+          </div>
+          {error && <p className="text-sm text-rose-600">{error}</p>}
+          <button type="submit" disabled={loading} className="btn-primary w-full">
+            {loading ? "Bitte warten..." : "Link senden"}
+          </button>
+          <button type="button" onClick={() => setMode("signin")} className="text-sm text-brand-600 w-full text-center">
+            Zurück zur Anmeldung
+          </button>
+        </form>
       ) : (
         <form onSubmit={handleSubmit} className="card p-5 space-y-4">
           <div className="flex gap-2 mb-2">
@@ -148,6 +195,12 @@ export default function LoginPage() {
           <button type="submit" disabled={loading} className="btn-primary w-full">
             {loading ? "Bitte warten..." : mode === "signup" ? "Konto erstellen" : "Anmelden"}
           </button>
+
+          {mode === "signin" && (
+            <button type="button" onClick={() => setMode("reset")} className="text-sm text-brand-600 w-full text-center">
+              Passwort vergessen?
+            </button>
+          )}
         </form>
       )}
     </div>

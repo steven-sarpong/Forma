@@ -4,24 +4,22 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Users, UserPlus, Check, X, Pencil, Sparkles, Trophy, Swords,
-  ChevronRight, Flame, Loader2,
+  ChevronRight,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import AvatarUpload, { getStoredAvatar } from "@/components/AvatarUpload";
 import { getProfile } from "@/lib/profile";
 import {
   acceptFriendRequest,
-  getFriendProfile,
   getFriends,
   getIncomingRequests,
   isSocialAvailable,
   removeFriendship,
   sendFriendRequest,
   setDisplayName,
-  FriendProfile,
 } from "@/lib/friends";
+import FriendProfileSheet from "@/components/FriendProfileSheet";
 import { getFriendsFeed } from "@/lib/activity-feed";
-import { BADGES } from "@/lib/gamification";
 import { ActivityFeedEntry, FriendListEntry, FriendRequestEntry } from "@/types";
 
 export default function SocialPage() {
@@ -42,8 +40,7 @@ export default function SocialPage() {
   const [friends, setFriends] = useState<FriendListEntry[]>([]);
   const [feed, setFeed] = useState<ActivityFeedEntry[]>([]);
 
-  const [selectedFriend, setSelectedFriend] = useState<FriendProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState<{ userId: string; displayName: string } | null>(null);
 
   async function reload() {
     const [reqs, frs, fd] = await Promise.all([getIncomingRequests(), getFriends(), getFriendsFeed()]);
@@ -111,17 +108,6 @@ export default function SocialPage() {
   async function handleRemoveFriend(friendshipId: string) {
     await removeFriendship(friendshipId);
     await reload();
-  }
-
-  async function openFriendProfile(userId: string) {
-    setProfileLoading(true);
-    setSelectedFriend(null);
-    try {
-      const profile = await getFriendProfile(userId);
-      setSelectedFriend(profile);
-    } finally {
-      setProfileLoading(false);
-    }
   }
 
   if (!available) {
@@ -292,7 +278,7 @@ export default function SocialPage() {
               {friends.map((f) => (
                 <div key={f.friendshipId} className="card p-3 flex items-center gap-3">
                   <button
-                    onClick={() => openFriendProfile(f.userId)}
+                    onClick={() => setSelectedFriend({ userId: f.userId, displayName: f.displayName })}
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
                   >
                     <span className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold text-sm shrink-0">
@@ -310,17 +296,10 @@ export default function SocialPage() {
         </div>
       </div>
 
-      {/* Friend profile loading indicator */}
-      {profileLoading && (
-        <div className="fixed inset-0 z-50 bg-black/20 flex items-center justify-center">
-          <Loader2 size={32} className="animate-spin text-brand-600" />
-        </div>
-      )}
-
-      {/* Friend profile bottom sheet */}
-      {selectedFriend && !profileLoading && (
+      {selectedFriend && (
         <FriendProfileSheet
-          profile={selectedFriend}
+          userId={selectedFriend.userId}
+          displayName={selectedFriend.displayName}
           onClose={() => setSelectedFriend(null)}
         />
       )}
@@ -328,71 +307,3 @@ export default function SocialPage() {
   );
 }
 
-function FriendProfileSheet({ profile, onClose }: { profile: FriendProfile; onClose: () => void }) {
-  const earnedBadges = BADGES.filter((b) => profile.unlockedBadgeIds.includes(b.id));
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
-      <div className="fixed inset-0 bg-black/40" />
-      <div
-        className="relative bg-white rounded-t-2xl w-full max-w-md mx-auto p-5 pb-8"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-start gap-4 mb-5">
-          <div className="w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
-            <span className="text-2xl font-bold text-brand-600">
-              {profile.displayName.slice(0, 1).toUpperCase()}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-lg font-bold text-brand-900 truncate">{profile.displayName}</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Dabei seit {new Date(profile.memberSince).toLocaleDateString("de-DE", {
-                month: "long", year: "numeric",
-              })}
-            </p>
-          </div>
-          <button onClick={onClose} className="text-gray-400 shrink-0 mt-1">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          <StatChip icon={<Trophy size={14} className="text-brand-600" />} label="Level" value={String(profile.level)} />
-          <StatChip icon={<Sparkles size={14} className="text-amber-500" />} label="XP" value={String(profile.xp)} />
-          <StatChip icon={<Flame size={14} className="text-accent-500" />} label="Streak" value={`${profile.currentStreak}d`} />
-        </div>
-
-        {/* Badges */}
-        <div>
-          <p className="text-xs font-semibold text-gray-500 mb-2">
-            Abzeichen ({earnedBadges.length} / {BADGES.length})
-          </p>
-          {earnedBadges.length === 0 ? (
-            <p className="text-xs text-gray-400">Noch keine Abzeichen freigeschaltet.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {earnedBadges.map((b) => (
-                <div key={b.id} className="flex items-center gap-1.5 bg-brand-50 border border-brand-100 rounded-full px-3 py-1">
-                  <span className="text-xs font-medium text-brand-700">{b.name}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatChip({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="bg-brand-50 rounded-xl p-3 text-center">
-      <div className="flex justify-center mb-1">{icon}</div>
-      <p className="text-base font-bold text-brand-900">{value}</p>
-      <p className="text-[10px] text-gray-400">{label}</p>
-    </div>
-  );
-}

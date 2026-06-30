@@ -135,8 +135,10 @@ export default function ChallengesPage() {
             <p className="text-sm font-semibold text-gray-500">Leaderboard</p>
           </div>
           {leaderboard.length <= 1 ? (
-            <div className="card p-4 text-sm text-gray-400 text-center">
-              {'Füge Freunde hinzu (im Bereich "Freunde"), um euch zu vergleichen.'}
+            <div className="card p-5 flex flex-col items-center text-center gap-3">
+              <Trophy size={28} className="text-brand-300" />
+              <p className="text-sm text-gray-400">Füge Freunde hinzu, um euch im Leaderboard zu vergleichen.</p>
+              <a href="/social" className="btn-primary w-full text-sm">Freunde hinzufügen</a>
             </div>
           ) : (
             <div className="space-y-2">

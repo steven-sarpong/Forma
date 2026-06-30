@@ -40,6 +40,13 @@ export async function signOut() {
   if (error) throw error;
 }
 
+export async function resetPasswordForEmail(email: string) {
+  const { error } = await getSupabaseClient().auth.resetPasswordForEmail(email, {
+    redirectTo: `${getSiteUrl()}/auth/callback`,
+  });
+  if (error) throw error;
+}
+
 export function onAuthStateChange(callback: (session: Session | null) => void) {
   const {
     data: { subscription },

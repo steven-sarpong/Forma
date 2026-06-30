@@ -214,6 +214,45 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Erste Schritte für neue Nutzer */}
+        {gamificationStats?.xp === 0 && totals.calories === 0 && (
+          <div className="card p-4 space-y-3">
+            <p className="text-sm font-semibold text-brand-900">Erste Schritte</p>
+            <div className="space-y-2">
+              <Link href="/scan" className="flex items-center gap-3 py-2 border-b border-gray-100">
+                <span className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                  <Flame size={15} className="text-brand-600" />
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-brand-900">Erste Mahlzeit scannen</p>
+                  <p className="text-xs text-gray-400">Foto aufnehmen & Kalorien tracken</p>
+                </div>
+                <ChevronRight size={16} className="text-gray-400" />
+              </Link>
+              <Link href="/training" className="flex items-center gap-3 py-2 border-b border-gray-100">
+                <span className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                  <Dumbbell size={15} className="text-brand-600" />
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-brand-900">Trainingsplan erstellen</p>
+                  <p className="text-xs text-gray-400">KI-generiert & auf dich abgestimmt</p>
+                </div>
+                <ChevronRight size={16} className="text-gray-400" />
+              </Link>
+              <Link href="/fridge" className="flex items-center gap-3 py-2">
+                <span className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+                  <Refrigerator size={15} className="text-brand-600" />
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-brand-900">Kühlschrank scannen</p>
+                  <p className="text-xs text-gray-400">Lebensmittel & Ablaufdaten erfassen</p>
+                </div>
+                <ChevronRight size={16} className="text-gray-400" />
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Challenges & Leaderboard */}
         {(rank || topChallenge) && (
           <Link

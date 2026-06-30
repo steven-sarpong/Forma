@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { KeyRound, ShieldCheck, Trash2, Info, UserCog, ChevronRight, LogOut, Cloud, Users, Trophy } from "lucide-react";
+import { ShieldCheck, Trash2, UserCog, ChevronRight, LogOut, Cloud, Users, Trophy, BookOpen, Award } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import AvatarUpload, { getStoredAvatar } from "@/components/AvatarUpload";
 import { getProfile } from "@/lib/profile";
@@ -37,7 +37,7 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="Einstellungen" subtitle="API-Key, Datenschutz & Daten" />
+      <PageHeader title="Einstellungen" subtitle="Konto, Datenschutz & Einstellungen" />
 
       <div className="px-5 space-y-4">
         {/* Profilbild */}
@@ -76,6 +76,24 @@ export default function SettingsPage() {
           <ChevronRight size={18} className="text-gray-400" />
         </Link>
 
+        <Link href="/recipes" className="card p-4 flex items-center gap-3">
+          <BookOpen size={18} className="text-brand-600 shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-brand-900 text-sm">Rezepte</p>
+            <p className="text-xs text-gray-500">KI-generierte Rezepte passend zu deinen Zielen</p>
+          </div>
+          <ChevronRight size={18} className="text-gray-400" />
+        </Link>
+
+        <Link href="/achievements" className="card p-4 flex items-center gap-3">
+          <Award size={18} className="text-brand-600 shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-brand-900 text-sm">Abzeichen & Erfolge</p>
+            <p className="text-xs text-gray-500">Freigeschaltete Abzeichen und Fortschritt ansehen</p>
+          </div>
+          <ChevronRight size={18} className="text-gray-400" />
+        </Link>
+
         <section className="card p-4">
           <div className="flex items-center gap-2 mb-2">
             <Cloud size={18} className="text-brand-600" />
@@ -105,52 +123,6 @@ export default function SettingsPage() {
           )}
         </section>
 
-        <section className="card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <KeyRound size={18} className="text-brand-600" />
-            <p className="font-semibold text-brand-900 text-sm">OpenRouter API-Key</p>
-          </div>
-          <p className="text-sm text-gray-500">
-            Diese App nutzt <span className="font-medium">OpenRouter</span>, um KI-Modelle für
-            Bildanalyse und Rezeptvorschläge anzusprechen. Der API-Key wird ausschließlich
-            serverseitig verwendet und niemals an den Browser übertragen.
-          </p>
-          <ol className="text-sm text-gray-500 list-decimal list-inside mt-2 space-y-1">
-            <li>
-              Account auf{" "}
-              <a
-                href="https://openrouter.ai"
-                target="_blank"
-                rel="noreferrer"
-                className="text-brand-600 underline"
-              >
-                openrouter.ai
-              </a>{" "}
-              erstellen
-            </li>
-            <li>API-Key unter „Keys“ generieren</li>
-            <li>
-              Key in der Datei <code className="bg-gray-100 px-1 rounded">.env.local</code> als{" "}
-              <code className="bg-gray-100 px-1 rounded">OPENROUTER_API_KEY</code> eintragen
-            </li>
-            <li>Server neu starten</li>
-          </ol>
-        </section>
-
-        <section className="card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Info size={18} className="text-brand-600" />
-            <p className="font-semibold text-brand-900 text-sm">Verwendete Modelle</p>
-          </div>
-          <p className="text-sm text-gray-500">
-            Hauptmodell für Bildanalyse und Rezepte sowie ein automatisches Fallback-Modell
-            werden über Umgebungsvariablen konfiguriert (
-            <code className="bg-gray-100 px-1 rounded">OPENROUTER_PRIMARY_MODEL</code>,{" "}
-            <code className="bg-gray-100 px-1 rounded">OPENROUTER_FALLBACK_MODEL</code>,{" "}
-            <code className="bg-gray-100 px-1 rounded">OPENROUTER_TEXT_MODEL</code>). Ist das
-            Hauptmodell nicht erreichbar, wechselt die App automatisch zum Fallback.
-          </p>
-        </section>
 
         <section className="card p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -171,8 +143,8 @@ export default function SettingsPage() {
             <p className="font-semibold text-brand-900 text-sm">Alle Daten löschen</p>
           </div>
           <p className="text-sm text-gray-500 mb-3">
-            Entfernt alle gespeicherten Lebensmittel und Mahlzeiten unwiderruflich von diesem
-            Gerät.
+            Entfernt alle gespeicherten Daten (Profil, Mahlzeiten, Training, Gewicht, Kühlschrank)
+            unwiderruflich von diesem Gerät.
           </p>
           {confirmReset ? (
             <div className="flex gap-2">

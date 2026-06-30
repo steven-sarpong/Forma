@@ -4,7 +4,7 @@
 
 import { NutritionGoals, UserProfile } from "@/types";
 
-const COACH_CACHE_KEY = "fridgeai_coach_cache";
+const COACH_CACHE_KEY = "forma_coach_cache";
 
 export interface CoachMessage {
   message: string;

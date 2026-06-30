@@ -50,6 +50,7 @@ export default function TrainingPage() {
   const [error, setError] = useState<string | null>(null);
   const [logDay, setLogDay] = useState<WorkoutDay | null>(null);
   const [durationInput, setDurationInput] = useState("45");
+  const [logSaved, setLogSaved] = useState(false);
 
   const [weekLogs, setWeekLogs] = useState<WorkoutLog[]>([]);
 
@@ -138,7 +139,8 @@ export default function TrainingPage() {
     showXpToast(await recordActivity("workout"));
     setLogs(await getWorkoutLogs());
     setWeekLogs(await getWorkoutLogsThisWeek());
-    setLogDay(null);
+    setLogSaved(true);
+    setTimeout(() => { setLogDay(null); setLogSaved(false); }, 1500);
   }
 
   async function handleDeleteLog(id: string) {
@@ -267,29 +269,37 @@ export default function TrainingPage() {
       </div>
 
       {logDay && (
-        <DetailSheet title={`${logDay.name} abschließen`} onClose={() => setLogDay(null)}>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-semibold text-gray-500">Dauer (Minuten)</label>
-              <input
-                type="number"
-                inputMode="numeric"
-                className="input-field mt-1"
-                value={durationInput}
-                onChange={(e) => setDurationInput(e.target.value)}
-                autoFocus
-              />
+        <DetailSheet title={`${logDay.name} abschließen`} onClose={() => { setLogDay(null); setLogSaved(false); }}>
+          {logSaved ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-6">
+              <CheckCircle2 size={48} className="text-brand-600" />
+              <p className="text-lg font-bold text-brand-900">Starke Leistung!</p>
+              <p className="text-sm text-gray-500">Training wurde gespeichert.</p>
             </div>
-            <p className="text-xs text-gray-400">
-              Geschätzter Kalorienverbrauch:{" "}
-              <span className="font-semibold text-brand-700">
-                {estimateCaloriesBurned(Number(durationInput) || 0, profile.weightKg)} kcal
-              </span>
-            </p>
-            <button onClick={handleSaveLog} className="btn-primary w-full flex items-center justify-center gap-2">
-              <CheckCircle2 size={18} /> Training abschließen
-            </button>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-500">Dauer (Minuten)</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  className="input-field mt-1"
+                  value={durationInput}
+                  onChange={(e) => setDurationInput(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <p className="text-xs text-gray-400">
+                Geschätzter Kalorienverbrauch:{" "}
+                <span className="font-semibold text-brand-700">
+                  {estimateCaloriesBurned(Number(durationInput) || 0, profile.weightKg)} kcal
+                </span>
+              </p>
+              <button onClick={handleSaveLog} className="btn-primary w-full flex items-center justify-center gap-2">
+                <CheckCircle2 size={18} /> Training abschließen
+              </button>
+            </div>
+          )}
         </DetailSheet>
       )}
     </div>
