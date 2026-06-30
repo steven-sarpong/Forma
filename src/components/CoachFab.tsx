@@ -28,7 +28,7 @@ interface Props {
 
 const FAB_SIZE = 52;
 const NAV_HEIGHT = 72;
-const TOP_OFFSET = 56;
+const HEADER_HEIGHT = 96; // approx header height — FAB sits just below it, centered
 const INTRO_KEY = "forma_coach_intro_seen";
 const PROACTIVE_KEY = "forma_coach_last_bubble";
 const PROACTIVE_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -47,7 +47,12 @@ export default function CoachFab({ coachMessage, coachLoading, onRefresh, contex
   const [open, setOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [proactiveTip, setProactiveTip] = useState<string | null>(null);
-  const [pos, setPos] = useState<{ top: number; right: number }>({ top: TOP_OFFSET, right: 16 });
+  const [pos, setPos] = useState<{ top: number; right: number }>(() => ({
+    top: HEADER_HEIGHT,
+    right: typeof window !== "undefined"
+      ? Math.round(window.innerWidth / 2 - FAB_SIZE / 2)
+      : 16,
+  }));
   const [dragging, setDragging] = useState(false);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
