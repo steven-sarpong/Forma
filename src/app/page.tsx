@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Flame, Beef, ChevronRight, AlertTriangle, Droplet, Wheat,
-  Sparkles, Scale, Dumbbell, Trophy, Crown, Swords, X, RefreshCw,
+  Scale, Dumbbell, Trophy, Crown, Swords,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import CoachFab from "@/components/CoachFab";
 import { getExpiringItems, getLatestWeightEntry, getTodaysTotals } from "@/lib/storage";
 import { getProfile, calculateNutritionGoals } from "@/lib/profile";
 import { getCoachMessage, CoachMessage } from "@/lib/coach";
@@ -36,8 +37,6 @@ export default function DashboardPage() {
   const [level, setLevel] = useState<LevelInfo | null>(null);
   const [coach, setCoach] = useState<CoachMessage | null>(null);
   const [coachLoading, setCoachLoading] = useState(false);
-  const [coachError, setCoachError] = useState<string | null>(null);
-  const [coachOpen, setCoachOpen] = useState(false);
   const [rank, setRank] = useState<{ position: number; total: number } | null>(null);
   const [topChallenge, setTopChallenge] = useState<ChallengeSummary | null>(null);
   const profileRef = useRef<UserProfile | null>(null);
@@ -100,11 +99,10 @@ export default function DashboardPage() {
     forceRefresh = false
   ) {
     setCoachLoading(true);
-    setCoachError(null);
     try {
       setCoach(await getCoachMessage(p, g, t, { forceRefresh }));
-    } catch (err) {
-      setCoachError(err instanceof Error ? err.message : "Coach konnte nicht geladen werden.");
+    } catch {
+      // error shown inside CoachFab
     } finally {
       setCoachLoading(false);
     }
@@ -287,85 +285,20 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* AI Coach FAB */}
-      <button
-        onClick={() => setCoachOpen(true)}
-        className="fixed bottom-[74px] right-4 z-30 w-12 h-12 rounded-full bg-brand-600 shadow-cardHover flex items-center justify-center text-white active:scale-95 transition-transform"
-        aria-label="AI Coach öffnen"
-      >
-        <Sparkles size={20} />
-      </button>
-
-      {/* AI Coach Bottom Sheet */}
-      {coachOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setCoachOpen(false)}>
-          <div className="fixed inset-0 bg-black/40" />
-          <div
-            className="relative bg-white rounded-t-2xl w-full max-w-md mx-auto p-5 pb-8 max-h-[70vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center">
-                  <Sparkles size={15} className="text-white" />
-                </span>
-                <p className="font-semibold text-brand-900">Dein AI Coach</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={refreshCoach}
-                  disabled={coachLoading}
-                  className="text-gray-400 hover:text-brand-600 disabled:opacity-40"
-                  aria-label="Aktualisieren"
-                >
-                  <RefreshCw size={16} className={coachLoading ? "animate-spin" : ""} />
-                </button>
-                <button onClick={() => setCoachOpen(false)} className="text-gray-400" aria-label="Schließen">
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-
-            {coachLoading && !coach && (
-              <p className="text-sm text-gray-400">Dein Coach denkt nach...</p>
-            )}
-            {coachError && !coach && (
-              <p className="text-sm text-rose-500">{coachError}</p>
-            )}
-            {coach && (
-              <div className="space-y-3">
-                <div className="bg-brand-50 rounded-xl p-4">
-                  <p className="text-sm text-gray-700 leading-relaxed">{coach.message}</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-brand-600 text-sm">💡</span>
-                  <p className="text-sm text-brand-700 font-medium">{coach.tip}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-5 pt-4 border-t border-brand-50">
-              <p className="text-xs text-gray-400 mb-3">Frag deinen Coach:</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  "Was soll ich heute essen?",
-                  "Wie viel Protein fehlt mir?",
-                  "Was kann ich aus meinem Kühlschrank kochen?",
-                  "Warum stagniert mein Gewicht?",
-                ].map((q) => (
-                  <button
-                    key={q}
-                    onClick={refreshCoach}
-                    className="text-xs bg-brand-50 text-brand-700 px-3 py-1.5 rounded-full border border-brand-100 active:scale-95 transition-transform text-left"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <CoachFab
+        coachMessage={coach}
+        coachLoading={coachLoading}
+        onRefresh={refreshCoach}
+        context={{
+          goal: profile?.goal,
+          calorieGoal: goals?.calorieGoal,
+          caloriesSoFar: totals.calories,
+          proteinGoalG: goals?.proteinGoalG,
+          proteinSoFar: totals.protein,
+          currentWeightKg: profile?.weightKg,
+          targetWeightKg: profile?.targetWeightKg,
+        }}
+      />
     </div>
   );
 }

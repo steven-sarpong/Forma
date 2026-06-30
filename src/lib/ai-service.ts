@@ -361,6 +361,45 @@ export async function generateCoachMessage(ctx: CoachContext) {
   return { ...parsed, modelUsed };
 }
 
+// ---------- Coach Chat ----------
+
+const COACH_CHAT_SYSTEM_PROMPT = `Du bist ein freundlicher, motivierender persönlicher Fitness- und Ernährungscoach in einer App namens Forma.
+Du sprichst den Nutzer direkt auf Deutsch an (Du-Form), wie ein guter Personal Trainer.
+Du beantwortest freie Fragen zu Ernährung, Training, Abnehmen und Gesundheit – kurz, konkret und auf Deutsch.
+Antworte in maximal 3–5 Sätzen. Kein JSON, nur Fließtext. Sei ehrlich, motivierend und vermeide allgemeine Floskeln.`;
+
+export async function generateCoachChatReply(
+  question: string,
+  context: Record<string, unknown>
+): Promise<{ reply: string; modelUsed: string }> {
+  const primaryModel = getEnv("OPENROUTER_COACH_MODEL", "anthropic/claude-3.5-sonnet");
+  const secondaryModel = getEnv("OPENROUTER_PRIMARY_MODEL", "google/gemini-2.5-flash");
+  const freeModel = getEnv("OPENROUTER_COACH_FREE_MODEL", "nvidia/nemotron-nano-9b-v2:free");
+
+  const ctxLines = Object.entries(context)
+    .filter(([, v]) => v !== undefined && v !== null)
+    .map(([k, v]) => `- ${k}: ${v}`)
+    .join("\n");
+
+  const userPrompt = ctxLines
+    ? `Nutzerkontext:\n${ctxLines}\n\nFrage: ${question}`
+    : `Frage: ${question}`;
+
+  const messages: OpenRouterMessage[] = [
+    { role: "system", content: COACH_CHAT_SYSTEM_PROMPT },
+    { role: "user", content: userPrompt },
+  ];
+
+  const { content, modelUsed } = await callWithFallbackChain(
+    [primaryModel, secondaryModel, freeModel],
+    messages,
+    false,
+    400
+  );
+
+  return { reply: content.trim(), modelUsed };
+}
+
 // ---------- Trainingsplan-Generator ----------
 
 // Feste Kategorien, für die es ein konkretes Demo-Video gibt (siehe
