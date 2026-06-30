@@ -52,7 +52,7 @@ export default function FridgePage() {
         right={
           <div className="flex items-center gap-2">
             <Link
-              href="/scan"
+              href="/scan?mode=kuehlschrank"
               className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-card"
               aria-label="Kühlschrank scannen"
             >
@@ -72,7 +72,7 @@ export default function FridgePage() {
       <div className="px-5">
         {/* Schneller Scan-Hinweis */}
         <Link
-          href="/scan"
+          href="/scan?mode=kuehlschrank"
           className="block bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl2 p-4 text-white shadow-card active:scale-[0.98] transition-transform mb-5"
         >
           <div className="flex items-center justify-between">

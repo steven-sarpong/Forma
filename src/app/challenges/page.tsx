@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Trophy, Swords, Plus, Flame, Crown } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import FriendProfileSheet from "@/components/FriendProfileSheet";
 import { getLeaderboard, getFriends, isSocialAvailable } from "@/lib/friends";
 import {
   acceptChallenge,
@@ -20,6 +21,8 @@ export default function ChallengesPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [friends, setFriends] = useState<FriendListEntry[]>([]);
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
+
+  const [selectedFriend, setSelectedFriend] = useState<{ userId: string; displayName: string } | null>(null);
 
   const [showCreateChallenge, setShowCreateChallenge] = useState(false);
   const [challengeName, setChallengeName] = useState("");
@@ -133,15 +136,16 @@ export default function ChallengesPage() {
           </div>
           {leaderboard.length <= 1 ? (
             <div className="card p-4 text-sm text-gray-400 text-center">
-              Füge Freunde hinzu (im Bereich „Freunde“), um euch zu vergleichen.
+              {'Füge Freunde hinzu (im Bereich "Freunde"), um euch zu vergleichen.'}
             </div>
           ) : (
             <div className="space-y-2">
               {leaderboard.map((entry, i) => (
                 <div
                   key={entry.userId}
+                  onClick={() => !entry.isSelf && setSelectedFriend({ userId: entry.userId, displayName: entry.displayName })}
                   className={`card p-3 flex items-center gap-3 ${
-                    entry.isSelf ? "border-brand-300 bg-brand-50/60" : ""
+                    entry.isSelf ? "border-brand-300 bg-brand-50/60" : "cursor-pointer active:scale-[0.98] transition-transform"
                   }`}
                 >
                   <span className="w-7 flex items-center justify-center text-sm font-bold text-gray-400">
@@ -257,7 +261,10 @@ export default function ChallengesPage() {
                       .filter((p) => p.status === "accepted")
                       .map((p) => (
                         <div key={p.userId} className="flex items-center gap-2">
-                          <p className="text-xs font-medium text-brand-900 w-20 truncate">{p.displayName}</p>
+                          <p
+                            className={`text-xs font-medium text-brand-900 w-20 truncate ${!p.isSelf ? "cursor-pointer underline-offset-2 hover:underline" : ""}`}
+                            onClick={() => !p.isSelf && setSelectedFriend({ userId: p.userId, displayName: p.displayName })}
+                          >{p.displayName}</p>
                           <div className="flex-1 h-2 rounded-full bg-brand-100 overflow-hidden">
                             <div
                               className="h-full bg-brand-600"
@@ -292,6 +299,14 @@ export default function ChallengesPage() {
           )}
         </div>
       </div>
+
+      {selectedFriend && (
+        <FriendProfileSheet
+          userId={selectedFriend.userId}
+          displayName={selectedFriend.displayName}
+          onClose={() => setSelectedFriend(null)}
+        />
+      )}
     </div>
   );
 }

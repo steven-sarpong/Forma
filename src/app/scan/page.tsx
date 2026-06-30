@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2, Check, X, Pencil, AlertCircle, CheckCircle2,
@@ -368,6 +368,11 @@ function NumberField({
 
 export default function ScanPage() {
   const [mode, setMode] = useState<Mode>("mahlzeit");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "kuehlschrank") setMode("kuehlschrank");
+  }, []);
 
   return (
     <div>

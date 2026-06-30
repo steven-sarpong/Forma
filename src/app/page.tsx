@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import CoachFab from "@/components/CoachFab";
+import AvatarUpload, { getStoredAvatar } from "@/components/AvatarUpload";
 import { getExpiringItems, getLatestWeightEntry, getTodaysTotals, getFridgeItems } from "@/lib/storage";
 import { getProfile, calculateNutritionGoals } from "@/lib/profile";
 import { getCoachMessage, CoachMessage } from "@/lib/coach";
@@ -40,11 +41,13 @@ export default function DashboardPage() {
   const [rank, setRank] = useState<{ position: number; total: number } | null>(null);
   const [topChallenge, setTopChallenge] = useState<ChallengeSummary | null>(null);
   const [fridgeCategories, setFridgeCategories] = useState<{ label: string; count: number }[]>([]);
+  const [avatar, setAvatar] = useState<string | null>(null);
   const profileRef = useRef<UserProfile | null>(null);
   const goalsRef = useRef<NutritionGoals | null>(null);
   const totalsRef = useRef({ calories: 0, protein: 0, carbs: 0, fat: 0 });
 
   useEffect(() => {
+    setAvatar(getStoredAvatar());
     let active = true;
     (async () => {
       const p = await getProfile();
@@ -137,7 +140,18 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <PageHeader title={greeting} subtitle="Dein Überblick für heute" />
+      <PageHeader
+        title={greeting}
+        subtitle="Dein Überblick für heute"
+        right={
+          <AvatarUpload
+            value={avatar}
+            onChange={setAvatar}
+            initials={profile?.displayName?.slice(0, 1) ?? "?"}
+            size="sm"
+          />
+        }
+      />
 
       <div className="px-5 space-y-4 pb-6">
 
@@ -271,7 +285,7 @@ export default function DashboardPage() {
         )}
 
         {/* Kühlschrank */}
-        <Link href="/fridge" className="card p-4 flex items-center gap-3">
+        <Link href="/fridge" className="card p-4 flex items-center gap-3" id="fridge-card">
           <span className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
             <Refrigerator size={18} className="text-brand-600" />
           </span>

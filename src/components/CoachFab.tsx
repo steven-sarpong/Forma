@@ -30,10 +30,23 @@ const FAB_SIZE = 52;
 const NAV_HEIGHT = 72;
 const TOP_OFFSET = 56;
 const INTRO_KEY = "forma_coach_intro_seen";
+const PROACTIVE_KEY = "forma_coach_last_bubble";
+const PROACTIVE_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+const PROACTIVE_TIPS = [
+  "💧 Denk daran, heute genug Wasser zu trinken – mindestens 2 Liter!",
+  "🥩 Hast du heute schon genug Protein? Achte auf dein Tagesziel.",
+  "🔥 Dein Streak zählt – bleib dran, auch wenn es mal ein leichter Tag ist.",
+  "🏃 Bewegung nach dem Essen verbessert den Blutzucker. Kurzer Spaziergang?",
+  "😴 Guter Schlaf ist der heimliche Booster für Muskelaufbau und Fettabbau.",
+  "🥦 Vergiss das Gemüse nicht – Ballaststoffe halten dich länger satt.",
+  "⏰ Regelmäßige Mahlzeiten helfen, Heißhunger zu vermeiden.",
+];
 
 export default function CoachFab({ coachMessage, coachLoading, onRefresh, context }: Props) {
   const [open, setOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+  const [proactiveTip, setProactiveTip] = useState<string | null>(null);
   const [pos, setPos] = useState<{ top: number; right: number }>({ top: TOP_OFFSET, right: 16 });
   const [dragging, setDragging] = useState(false);
   const [chat, setChat] = useState<ChatMsg[]>([]);
@@ -57,6 +70,24 @@ export default function CoachFab({ coachMessage, coachLoading, onRefresh, contex
     setShowIntro(false);
     if (typeof window !== "undefined") localStorage.setItem(INTRO_KEY, "1");
   }
+
+  // Proactive bubble after intro is done
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const introSeen = !!localStorage.getItem(INTRO_KEY);
+    const lastBubble = Number(localStorage.getItem(PROACTIVE_KEY) ?? "0");
+    const due = Date.now() - lastBubble > PROACTIVE_INTERVAL_MS;
+    if (!introSeen || !due) return;
+
+    const delay = 25000 + Math.random() * 15000; // 25-40s after mount
+    const t = setTimeout(() => {
+      const tip = PROACTIVE_TIPS[Math.floor(Math.random() * PROACTIVE_TIPS.length)];
+      setProactiveTip(tip);
+      localStorage.setItem(PROACTIVE_KEY, String(Date.now()));
+      setTimeout(() => setProactiveTip(null), 8000);
+    }, delay);
+    return () => clearTimeout(t);
+  }, []);
 
   // Seed chat with daily message when it arrives
   useEffect(() => {
@@ -238,6 +269,15 @@ export default function CoachFab({ coachMessage, coachLoading, onRefresh, contex
           >
             <p className="font-semibold mb-1">👋 Hallo! Ich bin dein AI Coach.</p>
             <p className="text-gray-500">Stell mir Fragen zu Training & Ernährung – und ich lasse mich überall hin schieben!</p>
+            <span className="absolute -bottom-1.5 right-4 w-3 h-3 bg-white border-r border-b border-brand-100 rotate-45" />
+          </div>
+        )}
+        {proactiveTip && !showIntro && !open && (
+          <div
+            className="absolute bottom-[60px] right-0 w-60 bg-white rounded-2xl rounded-br-sm shadow-cardHover p-3 text-xs text-brand-900 leading-relaxed border border-brand-100"
+            onClick={(e) => { e.stopPropagation(); setProactiveTip(null); }}
+          >
+            <p>{proactiveTip}</p>
             <span className="absolute -bottom-1.5 right-4 w-3 h-3 bg-white border-r border-b border-brand-100 rotate-45" />
           </div>
         )}
