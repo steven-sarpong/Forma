@@ -12,22 +12,51 @@ import { Meal } from "@/types";
 import { FoodDbEntry, searchFoodDatabase } from "@/lib/food-database";
 import { CATEGORY_EMOJI } from "@/lib/category-style";
 
+type Tab = "heute" | "verlauf";
+
+const MEAL_TYPES: { label: string; emoji: string; hourRange: [number, number] }[] = [
+  { label: "Frühstück", emoji: "🌅", hourRange: [5, 10] },
+  { label: "Mittagessen", emoji: "☀️", hourRange: [11, 14] },
+  { label: "Abendessen", emoji: "🌙", hourRange: [17, 22] },
+  { label: "Snacks", emoji: "🍎", hourRange: [0, 24] }, // catch-all
+];
+
+function getMealType(dateStr: string): string {
+  const hour = new Date(dateStr).getHours();
+  for (const t of MEAL_TYPES.slice(0, 3)) {
+    if (hour >= t.hourRange[0] && hour <= t.hourRange[1]) return t.label;
+  }
+  return "Snacks";
+}
+
+const TODAY_KEY = new Date().toLocaleDateString("de-DE");
+
+function isToday(dateStr: string): boolean {
+  return new Date(dateStr).toLocaleDateString("de-DE") === TODAY_KEY;
+}
+
 export default function MealsPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
   const [showAdd, setShowAdd] = useState(false);
   const [detailMeal, setDetailMeal] = useState<Meal | null>(null);
+  const [tab, setTab] = useState<Tab>("heute");
 
   async function reload() {
     setMeals(await getMeals());
     setTotals(await getTodaysTotals());
   }
 
-  useEffect(() => {
-    reload();
-  }, []);
+  useEffect(() => { reload(); }, []);
 
-  const groupedByDay = groupByDay(meals);
+  const todayMeals = meals.filter((m) => isToday(m.eatenAt));
+  const historyMeals = meals.filter((m) => !isToday(m.eatenAt));
+  const groupedByDay = groupByDay(historyMeals);
+
+  const todayByType = MEAL_TYPES.map((t) => ({
+    ...t,
+    meals: todayMeals.filter((m) => getMealType(m.eatenAt) === t.label),
+  })).filter((t) => t.meals.length > 0);
 
   return (
     <div>
@@ -37,7 +66,7 @@ export default function MealsPage() {
         right={
           <div className="flex items-center gap-2">
             <Link
-              href="/meals/scan"
+              href="/scan"
               className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-card"
               aria-label="Mahlzeit scannen"
             >
@@ -55,27 +84,24 @@ export default function MealsPage() {
       />
 
       <div className="px-5">
-        {/* Schneller Scan-Hinweis */}
-        <Link
-          href="/meals/scan"
-          className="block bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl2 p-4 text-white shadow-card active:scale-[0.98] transition-transform mb-5"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold">Mahlzeit per Foto erfassen</p>
-              <p className="text-xs text-brand-100 mt-0.5">
-                KI schätzt Kalorien & Makros automatisch
-              </p>
-            </div>
-            <span className="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center shrink-0">
-              <ScanLine size={22} />
-            </span>
-          </div>
-        </Link>
+        {/* Tab Bar */}
+        <div className="flex p-1 bg-brand-50 rounded-xl mb-5 border border-brand-100">
+          {(["heute", "verlauf"] as Tab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                tab === t ? "bg-white text-brand-700 shadow-sm" : "text-gray-400"
+              }`}
+            >
+              {t === "heute" ? "Heute" : "Verlauf"}
+            </button>
+          ))}
+        </div>
 
-        {/* Tagesübersicht */}
+        {/* Tagesübersicht immer sichtbar */}
         <div className="card p-4 mb-5">
-          <p className="text-sm font-semibold text-gray-500 mb-3">Heute</p>
+          <p className="text-xs font-semibold text-gray-500 mb-3">Heute</p>
           <div className="grid grid-cols-4 gap-2 text-center">
             <Stat icon={Flame} color="text-accent-500" bg="bg-accent-100" value={Math.round(totals.calories)} label="kcal" />
             <Stat icon={Beef} color="text-rose-500" bg="bg-rose-100" value={`${Math.round(totals.protein)}g`} label="Protein" />
@@ -84,29 +110,64 @@ export default function MealsPage() {
           </div>
         </div>
 
-        {meals.length === 0 ? (
-          <div className="card p-6 text-center text-sm text-gray-400">
-            Noch keine Mahlzeiten erfasst. Füge eine manuell hinzu oder übernimm einen
-            Rezeptvorschlag.
-          </div>
-        ) : (
-          <div className="space-y-5">
-            {Array.from(groupedByDay.entries()).map(([day, dayMeals]) => (
-              <div key={day}>
-                <p className="text-sm font-semibold text-gray-500 mb-2">{day}</p>
-                <div className="space-y-2">
-                  {dayMeals.map((m) => (
-                    <MealRow
-                      key={m.id}
-                      meal={m}
-                      onChanged={reload}
-                      onOpenDetail={() => setDetailMeal(m)}
-                    />
-                  ))}
-                </div>
+        {/* Heute-Tab: nach Mahlzeittyp gruppiert */}
+        {tab === "heute" && (
+          <>
+            {todayMeals.length === 0 ? (
+              <div className="card p-6 text-center text-sm text-gray-400">
+                Noch keine Mahlzeiten heute. Füge eine hinzu oder scanne dein Essen.
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="space-y-5">
+                {todayByType.map(({ label, emoji, meals: typeMeals }) => (
+                  <div key={label}>
+                    <p className="text-sm font-semibold text-gray-500 mb-2 flex items-center gap-1.5">
+                      <span>{emoji}</span> {label}
+                    </p>
+                    <div className="space-y-2">
+                      {typeMeals.map((m) => (
+                        <MealRow
+                          key={m.id}
+                          meal={m}
+                          onChanged={reload}
+                          onOpenDetail={() => setDetailMeal(m)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Verlauf-Tab: nach Datum gruppiert */}
+        {tab === "verlauf" && (
+          <>
+            {historyMeals.length === 0 ? (
+              <div className="card p-6 text-center text-sm text-gray-400">
+                Kein Verlauf vorhanden.
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {Array.from(groupedByDay.entries()).map(([day, dayMeals]) => (
+                  <div key={day}>
+                    <p className="text-sm font-semibold text-gray-500 mb-2">{day}</p>
+                    <div className="space-y-2">
+                      {dayMeals.map((m) => (
+                        <MealRow
+                          key={m.id}
+                          meal={m}
+                          onChanged={reload}
+                          onOpenDetail={() => setDetailMeal(m)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -115,10 +176,7 @@ export default function MealsPage() {
         <MealDetailSheet
           meal={detailMeal}
           onClose={() => setDetailMeal(null)}
-          onDeleted={() => {
-            setDetailMeal(null);
-            reload();
-          }}
+          onDeleted={() => { setDetailMeal(null); reload(); }}
         />
       )}
     </div>
@@ -126,11 +184,7 @@ export default function MealsPage() {
 }
 
 function Stat({
-  icon: Icon,
-  color,
-  bg,
-  value,
-  label,
+  icon: Icon, color, bg, value, label,
 }: {
   icon: typeof Flame;
   color: string;
@@ -149,40 +203,20 @@ function Stat({
   );
 }
 
-function MealRow({
-  meal,
-  onChanged,
-  onOpenDetail,
-}: {
-  meal: Meal;
-  onChanged: () => void;
-  onOpenDetail: () => void;
-}) {
+function MealRow({ meal, onChanged, onOpenDetail }: { meal: Meal; onChanged: () => void; onOpenDetail: () => void }) {
   return (
     <div className="card p-3 flex items-center gap-3">
-      <button
-        onClick={onOpenDetail}
-        className="flex-1 min-w-0 text-left"
-        type="button"
-      >
+      <button onClick={onOpenDetail} className="flex-1 min-w-0 text-left" type="button">
         <p className="text-sm font-semibold text-brand-900 truncate">{meal.name}</p>
         <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
-          <span>
-            {new Date(meal.eatenAt).toLocaleTimeString("de-DE", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
+          <span>{new Date(meal.eatenAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</span>
           <span>· {meal.calories} kcal</span>
           {meal.source === "recipe" && <span className="pill bg-brand-50 text-brand-700">Rezept</span>}
           {meal.source === "scan" && <span className="pill bg-accent-100 text-accent-600">KI-Scan</span>}
         </div>
       </button>
       <button
-        onClick={async () => {
-          await deleteMeal(meal.id);
-          onChanged();
-        }}
+        onClick={async () => { await deleteMeal(meal.id); onChanged(); }}
         className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:bg-rose-50 hover:text-rose-500 shrink-0"
         aria-label="Löschen"
       >
@@ -192,15 +226,7 @@ function MealRow({
   );
 }
 
-function MealDetailSheet({
-  meal,
-  onClose,
-  onDeleted,
-}: {
-  meal: Meal;
-  onClose: () => void;
-  onDeleted: () => void;
-}) {
+function MealDetailSheet({ meal, onClose, onDeleted }: { meal: Meal; onClose: () => void; onDeleted: () => void }) {
   return (
     <DetailSheet title={meal.name} onClose={onClose}>
       <div className="space-y-4">
@@ -209,12 +235,9 @@ function MealDetailSheet({
           {meal.source === "scan" && <span className="pill bg-accent-100 text-accent-600">KI-Scan</span>}
           {meal.source === "manual" && <span className="pill bg-gray-100 text-gray-500">Manuell</span>}
           {typeof meal.confidence === "number" && (
-            <span className="pill bg-gray-100 text-gray-500">
-              Sicherheit: {Math.round(meal.confidence * 100)}%
-            </span>
+            <span className="pill bg-gray-100 text-gray-500">Sicherheit: {Math.round(meal.confidence * 100)}%</span>
           )}
         </div>
-
         <div className="bg-gray-50 rounded-lg p-3">
           <p className="text-xs font-semibold text-gray-500 mb-2">Nährwerte (gesamte Portion)</p>
           <div className="grid grid-cols-4 gap-2 text-center">
@@ -224,43 +247,29 @@ function MealDetailSheet({
             <NutritionMini label="Fett" value={`${meal.fat}g`} />
           </div>
         </div>
-
         {meal.items && meal.items.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-gray-500 mb-1.5">Erkannte Bestandteile</p>
             <div className="flex flex-wrap gap-1.5">
               {meal.items.map((it, i) => (
                 <span key={i} className="pill bg-brand-50 text-brand-700">
-                  {it.name}
-                  {it.estimated_quantity ? ` · ${it.estimated_quantity}` : ""}
+                  {it.name}{it.estimated_quantity ? ` · ${it.estimated_quantity}` : ""}
                 </span>
               ))}
             </div>
           </div>
         )}
-
-        {meal.recipeTitle && (
-          <DetailField label="Aus Rezept" value={meal.recipeTitle} />
-        )}
-
+        {meal.recipeTitle && <DetailField label="Aus Rezept" value={meal.recipeTitle} />}
         <DetailField
           label="Erfasst am"
           value={new Date(meal.eatenAt).toLocaleString("de-DE", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
+            day: "2-digit", month: "2-digit", year: "numeric",
+            hour: "2-digit", minute: "2-digit",
           })}
         />
-
         {meal.modelUsed && <DetailField label="Analysiert mit" value={meal.modelUsed} />}
-
         <button
-          onClick={async () => {
-            await deleteMeal(meal.id);
-            onDeleted();
-          }}
+          onClick={async () => { await deleteMeal(meal.id); onDeleted(); }}
           className="btn-secondary w-full text-rose-600 border-rose-200 hover:bg-rose-50 flex items-center justify-center gap-2"
           type="button"
         >
@@ -271,13 +280,7 @@ function MealDetailSheet({
   );
 }
 
-function NutritionMini({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
+function NutritionMini({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-lg py-2 bg-white">
       <p className="text-sm font-bold text-brand-900">{value}</p>
@@ -301,7 +304,6 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
   const [protein, setProtein] = useState("");
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
-
   const [suggestions, setSuggestions] = useState<FoodDbEntry[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
@@ -325,18 +327,10 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (!showSuggestions || suggestions.length === 0) return;
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlightIndex((i) => (i + 1) % suggestions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlightIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      applyEntry(suggestions[highlightIndex]);
-    } else if (e.key === "Escape") {
-      setShowSuggestions(false);
-    }
+    if (e.key === "ArrowDown") { e.preventDefault(); setHighlightIndex((i) => (i + 1) % suggestions.length); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHighlightIndex((i) => (i - 1 + suggestions.length) % suggestions.length); }
+    else if (e.key === "Enter") { e.preventDefault(); applyEntry(suggestions[highlightIndex]); }
+    else if (e.key === "Escape") { setShowSuggestions(false); }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -361,9 +355,7 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
       <div className="bg-white rounded-t-2xl w-full max-w-md p-5 pb-8">
         <div className="flex items-center justify-between mb-4">
           <p className="font-semibold text-brand-900">Mahlzeit hinzufügen</p>
-          <button onClick={onClose} className="text-gray-400">
-            <X size={20} />
-          </button>
+          <button onClick={onClose} className="text-gray-400"><X size={20} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="relative">
@@ -390,66 +382,25 @@ function AddMealModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => applyEntry(entry)}
-                      className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm ${
-                        i === highlightIndex ? "bg-brand-50" : "hover:bg-gray-50"
-                      }`}
+                      className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm ${i === highlightIndex ? "bg-brand-50" : "hover:bg-gray-50"}`}
                     >
                       <span>{CATEGORY_EMOJI[entry.category]}</span>
                       <span className="font-medium text-brand-900">{entry.name}</span>
-                      <span className="text-xs text-gray-400 ml-auto">
-                        {entry.nutritionPer100g.calories} kcal/100g
-                      </span>
+                      <span className="text-xs text-gray-400 ml-auto">{entry.nutritionPer100g.calories} kcal/100g</span>
                     </button>
                   </li>
                 ))}
               </ul>
             )}
-            <p className="text-[11px] text-gray-400 mt-1">
-              Wähle einen Vorschlag, um Nährwerte automatisch zu übernehmen, oder trage eigene
-              Werte unten ein.
-            </p>
+            <p className="text-[11px] text-gray-400 mt-1">Wähle einen Vorschlag, um Nährwerte automatisch zu übernehmen.</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-500">Kalorien (kcal)</label>
-              <input
-                type="number"
-                className="input-field mt-1"
-                value={calories}
-                onChange={(e) => setCalories(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">Protein (g)</label>
-              <input
-                type="number"
-                className="input-field mt-1"
-                value={protein}
-                onChange={(e) => setProtein(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">Kohlenhydrate (g)</label>
-              <input
-                type="number"
-                className="input-field mt-1"
-                value={carbs}
-                onChange={(e) => setCarbs(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500">Fett (g)</label>
-              <input
-                type="number"
-                className="input-field mt-1"
-                value={fat}
-                onChange={(e) => setFat(e.target.value)}
-              />
-            </div>
+            <div><label className="text-xs text-gray-500">Kalorien (kcal)</label><input type="number" className="input-field mt-1" value={calories} onChange={(e) => setCalories(e.target.value)} /></div>
+            <div><label className="text-xs text-gray-500">Protein (g)</label><input type="number" className="input-field mt-1" value={protein} onChange={(e) => setProtein(e.target.value)} /></div>
+            <div><label className="text-xs text-gray-500">Kohlenhydrate (g)</label><input type="number" className="input-field mt-1" value={carbs} onChange={(e) => setCarbs(e.target.value)} /></div>
+            <div><label className="text-xs text-gray-500">Fett (g)</label><input type="number" className="input-field mt-1" value={fat} onChange={(e) => setFat(e.target.value)} /></div>
           </div>
-          <button type="submit" className="btn-primary w-full mt-2">
-            Hinzufügen
-          </button>
+          <button type="submit" className="btn-primary w-full mt-2">Hinzufügen</button>
         </form>
       </div>
     </div>
@@ -460,9 +411,7 @@ function groupByDay(meals: Meal[]): Map<string, Meal[]> {
   const map = new Map<string, Meal[]>();
   meals.forEach((m) => {
     const day = new Date(m.eatenAt).toLocaleDateString("de-DE", {
-      weekday: "long",
-      day: "2-digit",
-      month: "2-digit",
+      weekday: "long", day: "2-digit", month: "2-digit",
     });
     const arr = map.get(day) || [];
     arr.push(m);
