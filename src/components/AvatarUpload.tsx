@@ -70,7 +70,24 @@ export default function AvatarUpload({ value, onChange, initials = "?", size = "
 
   return (
     <>
-      {/* Avatar button — no camera badge */}
+      {/* File inputs always in DOM so .click() works reliably on iOS */}
+      <input
+        ref={uploadRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={handleFile}
+      />
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="user"
+        style={{ display: "none" }}
+        onChange={handleFile}
+      />
+
+      {/* Avatar button */}
       <button
         type="button"
         onClick={() => setModalOpen(true)}
@@ -103,7 +120,6 @@ export default function AvatarUpload({ value, onChange, initials = "?", size = "
             className="relative flex flex-col items-center gap-5 p-6 w-full max-w-xs"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close */}
             <button
               onClick={() => setModalOpen(false)}
               className="absolute top-0 right-0 w-9 h-9 rounded-full bg-white/20 text-white flex items-center justify-center"
@@ -112,7 +128,6 @@ export default function AvatarUpload({ value, onChange, initials = "?", size = "
               <X size={18} />
             </button>
 
-            {/* Large avatar preview */}
             {value ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -128,11 +143,10 @@ export default function AvatarUpload({ value, onChange, initials = "?", size = "
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex flex-col gap-3 w-full">
               <button
                 type="button"
-                onClick={() => cameraRef.current?.click()}
+                onClick={() => { setModalOpen(false); setTimeout(() => cameraRef.current?.click(), 50); }}
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white text-brand-900 font-semibold text-sm shadow-sm active:scale-[0.98] transition-transform"
               >
                 <Camera size={16} />
@@ -140,7 +154,7 @@ export default function AvatarUpload({ value, onChange, initials = "?", size = "
               </button>
               <button
                 type="button"
-                onClick={() => uploadRef.current?.click()}
+                onClick={() => { setModalOpen(false); setTimeout(() => uploadRef.current?.click(), 50); }}
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white/20 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
               >
                 <Upload size={16} />
@@ -148,25 +162,6 @@ export default function AvatarUpload({ value, onChange, initials = "?", size = "
               </button>
             </div>
           </div>
-
-          {/* Hidden file inputs */}
-          <input
-            ref={uploadRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={handleFile}
-            aria-hidden
-          />
-          <input
-            ref={cameraRef}
-            type="file"
-            accept="image/*"
-            capture="user"
-            className="sr-only"
-            onChange={handleFile}
-            aria-hidden
-          />
         </div>
       )}
     </>
