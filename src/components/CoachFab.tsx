@@ -28,7 +28,7 @@ interface Props {
 
 const FAB_SIZE = 52;
 const NAV_HEIGHT = 72; // bottom nav clearance
-const TOP_OFFSET = 100; // initial top offset (below header)
+const TOP_OFFSET = 56; // align with top of PageHeader area
 
 export default function CoachFab({ coachMessage, coachLoading, onRefresh, context }: Props) {
   const [open, setOpen] = useState(false);

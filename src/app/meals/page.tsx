@@ -49,8 +49,9 @@ export default function MealsPage() {
 
   useEffect(() => { reload(); }, []);
 
-  const todayMeals = meals.filter((m) => isToday(m.eatenAt));
-  const historyMeals = meals.filter((m) => !isToday(m.eatenAt));
+  const sorted = [...meals].sort((a, b) => new Date(b.eatenAt).getTime() - new Date(a.eatenAt).getTime());
+  const todayMeals = sorted.filter((m) => isToday(m.eatenAt));
+  const historyMeals = sorted.filter((m) => !isToday(m.eatenAt));
   const groupedByDay = groupByDay(historyMeals);
 
   const todayByType = MEAL_TYPES.map((t) => ({
